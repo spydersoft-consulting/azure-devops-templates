@@ -6,10 +6,6 @@ parameters:
 - name: netCoreVersion
   type: string
   default: '5.0.x'
-- name: npmInstallFolder
-  type: string
-- name: gulpFolder
-  type: string
 - name: publishProject
   type: string
 # TODO - Add test steps (even though there may only be one test)
