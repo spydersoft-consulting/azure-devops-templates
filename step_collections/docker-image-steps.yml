@@ -1,0 +1,49 @@
+parameters:
+- name: dockerImageName
+  type: string
+- name: containerRegistryName
+  type: string
+- name: containerRegistryUrl
+  type: string
+- name: artifactName
+  type: string
+- name: dockerImageFileName
+  type: string
+- name: artifactZipName
+  type: string
+
+steps:
+  - download: current
+    artifact: ${{ parameters.artifactName }}
+  - task: ExtractFiles@1
+    displayName: Extract Build Files
+    inputs:
+      archiveFilePatterns: '$(Pipeline.Workspace)/${{ parameters.artifactName }}/${{ parameters.artifactZipName }}.zip' 
+      destinationFolder: $(Pipeline.Workspace)/publishFiles
+      cleanDestinationFolder: true   
+  - task: Bash@3
+    displayName: Copy Docker file to build folder
+    inputs:
+      targetType: 'inline'
+      script: |
+        cp $(Build.SourcesDirectory)/Dockerfile.simple $(Pipeline.Workspace)/publishFiles/Dockerfile
+
+  - task: Docker@2
+    displayName: Build Image
+    inputs:
+      command: 'build'
+      containerRegistry: ${{ parameters.containerRegistryName }}
+      repository: ${{ parameters.dockerImageName }}
+      Dockerfile: '$(Pipeline.Workspace)/publishFiles/Dockerfile'
+      buildContext: '$(Pipeline.Workspace)/publishFiles'
+      tags: |
+        $(build.buildnumber)
+
+  - task: Docker@2
+    displayName: Push to Container Registry
+    inputs:
+      containerRegistry: ${{ parameters.containerRegistryName}}
+      repository: '${{ parameters.dockerImageName}}'
+      command: 'push'
+      tags: | 
+        $(build.buildnumber)
