@@ -25,9 +25,10 @@ steps:
     git checkout main
     git pull
 
-    rm -Rf $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }}/*
+    rm -Rf $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }}
+    mkdir -p $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }}
 
-    cp $(Pipeline.Workspace)/${{ parameters.artifactName }} $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/ -Rf
+    cp $(Pipeline.Workspace)/${{ parameters.artifactName }} $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }} -Rf
     git add --all
     git commit -m "${{ parameters.commitMessage }}"
     git push origin main
