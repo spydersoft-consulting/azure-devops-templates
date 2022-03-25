@@ -10,6 +10,9 @@ parameters:
     type: string
   - name: argoRepoName
     type: string
+  - name: argoBaseDir
+    type: string
+    default: apps
 
 stages:
 - stage: stage_deploy_to_test
@@ -36,3 +39,4 @@ stages:
         repositoryResource: "${{ parameters.argoRepoName }}"
         artifactName: "${{ parameters.environmentName }}"
         commitMessage: "Feature - Update $(Build.BuildNumber)"
+        argoBaseDir: "${{ parameters.argoBaseDir }} "
