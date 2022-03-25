@@ -24,7 +24,7 @@ steps:
     cd $(Build.SourcesDirectory)
     git checkout main
     git pull
-
+    echo $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }}
     rm -Rf $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }}
     mkdir -p $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }}
 
