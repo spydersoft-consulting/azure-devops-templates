@@ -17,7 +17,6 @@ jobs:
   displayName: Create Docker Image and Publish
   pool:
     name: Default
-    demands: agent.os -equals Linux
   steps:
     - download: current
       artifact: ${{ parameters.artifactName }}

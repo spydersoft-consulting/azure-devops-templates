@@ -1,0 +1,30 @@
+parameters:
+- name: repositoryResource
+  type: string
+- name: artifactName
+  type: string
+- name: argoBaseDir
+  type: string
+  default: apps
+
+
+
+
+steps:
+- checkout: ${{ parameters.repositoryResource }}
+  clean: true
+  persistCredentials: true
+- task: DownloadPipelineArtifact@2
+  inputs:
+    source: 'current' # Options: current, specific
+    artifact: ${{ parameters.artifactName }}
+    path: '$(Pipeline.Workspace)/${{ parameters.artifactName }}'
+- script: |
+    git config --global user.email "gerega@gmail.com"
+    git config --global user.name "CI/CD User"
+    cd $(Build.SourcesDirectory)
+    git checkout main
+    
+    cp $(Pipeline.Workspace)/${{ parameters.artifactName }} $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }} -Rf
+    git status
+  displayName: List Output
