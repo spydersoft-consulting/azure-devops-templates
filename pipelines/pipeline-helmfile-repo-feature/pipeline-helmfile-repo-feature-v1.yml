@@ -1,13 +1,7 @@
 parameters:
-  # Optional stages after build
-  - name: 'postBuildStages'
-    type: stageList
-    default: []
-  # Repository where docker image will be published
-  - name: 'kubernetesConnectionName'
+  - name: kubernetesConnectionName
     type: string
-  # Tag(s) to add to docker image
-  - name: 'environmentName'
+  - name: environmentName
     type: string
   - name: namespace
     type: string
