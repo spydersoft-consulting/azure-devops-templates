@@ -51,7 +51,7 @@ stages:
         repositoryResource: "${{ parameters.argoRepoName }}"
         artifactName: "${{ parameters.environmentName }}"
         commitMessage: "Feature - Update $(Build.BuildNumber)"
-        argoBaseDir: "${{ parameters.argoBaseDir }} "
+        argoBaseDir: "${{ parameters.argoBaseDir }}"
 
 - stage: stage_deploy_to_production
   displayName: Deploy To Prod Environment
