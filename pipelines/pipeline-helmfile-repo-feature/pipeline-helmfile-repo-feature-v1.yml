@@ -19,7 +19,7 @@ stages:
     pool:
       name: Default
     steps:
-    - template: publish/helmfileconfig/steps-helmfile-template/steps-helmfile-template-v1.yml
+    - template: publish/helmfileconfig/steps-helmfile-template/steps-helmfile-template-v1.yml@templates
       parameters:
         kubernetesConnectionName: "${{ parameters.kubernetesConnectionName }}"
         environmentName: "${{ parameters.environmentName }}"
@@ -31,7 +31,7 @@ stages:
     pool:
       name: Default
     steps:
-    - template: publish/helmfileconfig/steps-update-argorepo/steps-update-argorepo-v1.yml
+    - template: publish/helmfileconfig/steps-update-argorepo/steps-update-argorepo-v1.yml@templates
       parameters:
         repositoryResource: "${{ parameters.argoRepoName }}"
         artifactName: "${{ parameters.environmentName }}"
