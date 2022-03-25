@@ -35,3 +35,4 @@ stages:
       parameters:
         repositoryResource: "${{ parameters.argoRepoName }}"
         artifactName: "${{ parameters.environmentName }}"
+        commitMessage: "Feature - Update $(Build.BuildNumber)"

@@ -6,9 +6,8 @@ parameters:
 - name: argoBaseDir
   type: string
   default: apps
-
-
-
+- name: commitMessage
+  type: string
 
 steps:
 - checkout: ${{ parameters.repositoryResource }}
@@ -26,5 +25,7 @@ steps:
     git checkout main
     
     cp $(Pipeline.Workspace)/${{ parameters.artifactName }} $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }} -Rf
-    git status
+    git add --all
+    git commit -m "${{ commitMessage }}"
+    git push origin main
   displayName: List Output

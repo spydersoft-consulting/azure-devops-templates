@@ -10,10 +10,13 @@ parameters:
   type: string
 - name: helmfileDirectory
   type: string
-
 - name: 'displayPrefix'
   type: string
   default: 'App'
+- name: prebuildSteps
+  type: stepList
+  default: []
+
 
 steps:
 - task: Kubernetes@1
@@ -24,6 +27,7 @@ steps:
     kubernetesServiceEndpoint: ${{ parameters.kubernetesConnectionName }}
     useClusterAdmin: true
     cwd: $(System.DefaultWorkingDirectory)/${{ parameters.helmfileDirectory }}
+- ${{ parameters.prebuildSteps }}
 - script: |
     curl -L https://github.com/roboll/helmfile/releases/download/v0.135.0/helmfile_linux_amd64 > $(Agent.TempDirectory)/helmfile
     chmod +x $(Agent.TempDirectory)/helmfile
