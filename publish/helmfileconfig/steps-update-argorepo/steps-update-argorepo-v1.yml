@@ -26,6 +26,6 @@ steps:
     
     cp $(Pipeline.Workspace)/${{ parameters.artifactName }} $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }} -Rf
     git add --all
-    git commit -m "${{ commitMessage }}"
+    git commit -m "${{ parameters.commitMessage }}"
     git push origin main
   displayName: List Output
