@@ -1,0 +1,44 @@
+parameters:
+# Name of artifact produced by build stage
+- name: 'kubernetesConnectionName'
+  type: string
+# Environment Name, needs to match a file in 
+- name: 'environmentName'
+  type: string
+# Kubernetes Namespace for Deployment
+- name: 'namespace'
+  type: string
+- name: helmfileDirectory
+  type: string
+
+- name: 'displayPrefix'
+  type: string
+  default: 'App'
+
+steps:
+- task: Kubernetes@1
+  displayName: ${{ parameters.displayPrefix }} - K8 Login
+  inputs:
+    command: login
+    connectionType: Kubernetes Service Connection
+    kubernetesServiceEndpoint: ${{ parameters.kubernetesConnectionName }}
+    useClusterAdmin: true
+    cwd: $(System.DefaultWorkingDirectory)/${{ parameters.helmfileDirectory }}
+- script: |
+    curl -L https://github.com/roboll/helmfile/releases/download/v0.135.0/helmfile_linux_amd64 > $(Agent.TempDirectory)/helmfile
+    chmod +x $(Agent.TempDirectory)/helmfile
+  displayName: ${{ parameters.displayPrefix }} - Install Helmfile
+- script: |
+    cd ${{ parameters.helmfileDirectory }}
+    helm repo add library-charts https://library-charts.k8s-at-home.com
+  displayName: ${{ parameters.displayPrefix }} - Update Dependencies
+- script: |
+    cd ${{ parameters.helmfileDirectory }}
+    $(Agent.TempDirectory)/helmfile -n ${{ parameters.namespace }} --environment ${{ parameters.environmentName }} template --output-dir-template "$(Build.ArtifactStagingDirectory)/output/${{ parameters.environmentName }}"
+  displayName: ${{ parameters.displayPrefix }} - Generate Output Environments
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(Build.ArtifactStagingDirectory)/output/${{ parameters.environmentName }}'
+    artifactName: '${{ parameters.environmentName }}'
+    artifactType: pipeline
+      
