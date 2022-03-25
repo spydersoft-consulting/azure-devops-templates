@@ -22,9 +22,9 @@ stages:
     - template: publish/helmfileconfig/steps-helmfile-template/steps-helmfile-template-v1.yml
       parameters:
         kubernetesConnectionName: "${{ parameters.kubernetesConnectionName }}"
-        environmentName: "${{ parameters.environmentName }"
-        namespace: "${{ parameters.namespace }"
-        helmfileDirectory: "${{ parameters.helmfileDirectory }"
+        environmentName: "${{ parameters.environmentName }}"
+        namespace: "${{ parameters.namespace }}"
+        helmfileDirectory: "${{ parameters.helmfileDirectory }}"
   - job: commit_changes
     dependsOn:
     - generate_manifests
@@ -34,4 +34,4 @@ stages:
     - template: publish/helmfileconfig/steps-update-argorepo/steps-update-argorepo-v1.yml
       parameters:
         repositoryResource: "${{ parameters.argoRepoName }}"
-        artifactName: "${{ parameters.environmentName }"
+        artifactName: "${{ parameters.environmentName }}"
