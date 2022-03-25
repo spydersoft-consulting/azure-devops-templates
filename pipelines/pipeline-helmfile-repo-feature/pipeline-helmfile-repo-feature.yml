@@ -1,0 +1,43 @@
+parameters:
+  # Optional stages after build
+  - name: 'postBuildStages'
+    type: stageList
+    default: []
+  # Repository where docker image will be published
+  - name: 'kubernetesConnectionName'
+    type: string
+  # Tag(s) to add to docker image
+  - name: 'environmentName'
+    type: string
+  - name: namespace
+    type: string
+  - name: helmfileDirectory
+    default: './'
+    type: string
+  - name: argoRepoName
+    type: string
+
+stages:
+- stage: stage_deploy_to_test
+  displayName: Deploy To Test Environment
+  jobs:
+  - job: generate_manifests
+    pool:
+      name: Default
+    steps:
+    - template: publish/helmfileconfig/steps-helmfile-template/steps-helmfile-template-v1.yml
+      parameters:
+        kubernetesConnectionName: "${{ parameters.kubernetesConnectionName }}"
+        environmentName: "${{ parameters.environmentName }"
+        namespace: "${{ parameters.namespace }"
+        helmfileDirectory: "${{ parameters.helmfileDirectory }"
+  - job: commit_changes
+    dependsOn:
+    - generate_manifests
+    pool:
+      name: Default
+    steps:
+    - template: publish/helmfileconfig/steps-update-argorepo/steps-update-argorepo-v1.yml
+      parameters:
+        repositoryResource: "${{ parameters.argoRepoName }}"
+        artifactName: "${{ parameters.environmentName }"
