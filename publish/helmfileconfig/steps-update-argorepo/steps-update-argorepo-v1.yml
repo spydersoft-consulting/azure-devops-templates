@@ -24,8 +24,8 @@ steps:
     cd $(Build.SourcesDirectory)
     git checkout main
     git pull
-    
-    rm -Rf $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}
+
+    rm -Rf $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }}/*
 
     cp $(Pipeline.Workspace)/${{ parameters.artifactName }} $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/ -Rf
     git add --all
