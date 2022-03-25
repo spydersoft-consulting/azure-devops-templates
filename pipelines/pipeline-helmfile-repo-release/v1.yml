@@ -1,0 +1,104 @@
+parameters:
+  - name: kubernetesConnectionName
+    type: string
+  - name: environmentName
+    type: string
+  - name: namespace
+    type: string
+  - name: helmfileDirectory
+    default: './'
+    type: string
+  - name: argoRepoName
+    type: string
+  - name: argoBaseDir
+    type: string
+    default: apps
+
+
+stages:
+- stage: stage_deploy_to_stage
+  displayName: Deploy To Stage Environment
+  jobs:
+  - deployment: deploy_marker
+    displayName: Deployment Step
+    environment: stage
+    pool:
+      name: Default
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: |
+              echo "Deploying to stage"
+  - job: generate_manifests
+    pool:
+      name: Default
+    steps:
+    - template: ../../publish/helmfileconfig/steps-helmfile-template/steps-helmfile-template-v1.yml
+      parameters:
+        kubernetesConnectionName: "${{ parameters.kubernetesConnectionName }}"
+        environmentName: "${{ parameters.environmentName }}"
+        namespace: "${{ parameters.namespace }}"
+        helmfileDirectory: "${{ parameters.helmfileDirectory }}"
+  - job: commit_changes
+    dependsOn:
+    - generate_manifests
+    pool:
+      name: Default
+    steps:
+    - template: ../../publish/helmfileconfig/steps-update-argorepo/steps-update-argorepo-v1.yml@templates
+      parameters:
+        repositoryResource: "${{ parameters.argoRepoName }}"
+        artifactName: "${{ parameters.environmentName }}"
+        commitMessage: "Feature - Update $(Build.BuildNumber)"
+        argoBaseDir: "${{ parameters.argoBaseDir }} "
+
+- stage: stage_deploy_to_production
+  displayName: Deploy To Prod Environment
+  jobs:
+  - deployment: deploy_marker
+    displayName: Deployment Step
+    environment: production
+    pool:
+      name: Default
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: |
+              echo "Deploying to production"
+  - job: generate_manifests_production
+    pool:
+      name: Default
+    steps:
+    - template: publish/helmfileconfig/steps-helmfile-template/steps-helmfile-template-v1.yml@templates
+      parameters:
+        kubernetesConnectionName: "${{ parameters.kubernetesConnectionName }}"
+        environmentName: "${{ parameters.environmentName }}"
+        namespace: "${{ parameters.namespace }}"
+        helmfileDirectory: "${{ parameters.helmfileDirectory }}"
+        prebuildSteps: 
+        - script: |
+            git config --global user.email "gerega@gmail.com"
+            git config --global user.name "CI/CD User"
+            cd $(Build.SourcesDirectory)
+            git checkout main
+            git pull
+            
+            cp $(Build.SourcesDirectory)/environments/stage/images.yaml $(Build.SourcesDirectory)/environments/production/images.yaml -f
+            git add --all
+            git commit -m "Promote Stage To Production"
+            git push origin main
+        displayName: Copy Stage to Production
+  - job: commit_changes
+    dependsOn:
+    - generate_manifests_production
+    pool:
+      name: Default
+    steps:
+    - template: ../../publish/helmfileconfig/steps-update-argorepo/steps-update-argorepo-v1.yml@templates
+      parameters:
+        repositoryResource: ops_prod_cluster
+        artifactName: "Production"
+        commitMessage: "Production - Update $(Build.BuildNumber)"
+        argoBaseDir: apps/home-automation

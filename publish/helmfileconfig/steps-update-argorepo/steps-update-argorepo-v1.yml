@@ -23,6 +23,7 @@ steps:
     git config --global user.name "CI/CD User"
     cd $(Build.SourcesDirectory)
     git checkout main
+    git pull
     
     rm -Rf $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}
 
