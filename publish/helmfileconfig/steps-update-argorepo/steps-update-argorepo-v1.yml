@@ -24,11 +24,10 @@ steps:
     cd $(Build.SourcesDirectory)
     git checkout main
     git pull
-    echo $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }}
     rm -Rf $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }}
     mkdir -p $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }}
 
-    cp $(Pipeline.Workspace)/${{ parameters.artifactName }} $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }} -Rf
+    cp $(Pipeline.Workspace)/${{ parameters.artifactName }} $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }} -Rf
     git add --all
     git commit -m "${{ parameters.commitMessage }}"
     git push origin main
