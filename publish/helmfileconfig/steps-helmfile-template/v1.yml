@@ -19,6 +19,9 @@ parameters:
 
 
 steps:
+- checkout: self
+  clean: true
+  persistCredentials: true
 - task: Kubernetes@1
   displayName: ${{ parameters.displayPrefix }} - K8 Login
   inputs:
