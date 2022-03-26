@@ -13,28 +13,43 @@ parameters:
   - name: argoBaseDir
     type: string
     default: apps
+  - name: pre_generate_steps
+    type: stepList
+    default: []
 
 stages:
 - stage: generate_commit_manifest_${{ parameters.environmentName }}
   displayName: Deploy To ${{ parameters.environmentName }} Environment
   jobs:
+  - deployment: deploy_marker_${{ parameters.environmentName }}
+    displayName: Deployment Step
+    environment: ${{ parameters.environmentName }}
+    pool:
+      name: Default
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: |
+              echo "Deploying to ${{ parameters.environmentName }}"
   - job: generate_manifests_${{ parameters.environmentName }}
     pool:
       name: Default
     steps:
-    - template: ../../publish/helmfileconfig/steps-helmfile-template/steps-helmfile-template-v1.yml
+    - template: ../../publish/helmfileconfig/steps-helmfile-template/v1.yml
       parameters:
         kubernetesConnectionName: "${{ parameters.kubernetesConnectionName }}"
         environmentName: "${{ parameters.environmentName }}"
         namespace: "${{ parameters.namespace }}"
         helmfileDirectory: "${{ parameters.helmfileDirectory }}"
+        pre_generate_steps: ${{ parameters.pre_generate_steps }}
   - job: commit_changes_${{ parameters.environmentName }}
     dependsOn:
     - generate_manifests_${{ parameters.environmentName }}
     pool:
       name: Default
     steps:
-    - template: ../../publish/helmfileconfig/steps-update-argorepo/steps-update-argorepo-v1.yml@templates
+    - template: ../../publish/helmfileconfig/steps-update-argorepo/v1.yml@templates
       parameters:
         repositoryResource: "${{ parameters.argoRepoName }}"
         artifactName: "${{ parameters.environmentName }}"
