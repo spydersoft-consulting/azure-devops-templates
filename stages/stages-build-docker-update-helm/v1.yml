@@ -1,0 +1,78 @@
+parameters:
+  - name: publishProject
+    type: string
+  - name: artifactName
+    type: string
+  - name: artifactZipName
+    type: string
+  - name: dockerImageFileName
+    type: string
+  - name: dockerImageName
+    type: string
+  - name: imageTagVariableName
+    type: string
+  - name: helmfileRepoName
+    type: string
+  
+
+  - name: netCoreVersion
+    type: string
+    default: '6.0.x'
+  - name: containerRegistryName
+    type: string
+    default: proget_docker
+  - name: containerRegistryUrl
+    type: string
+    default: proget.mattgerega.com
+  - name: buildConfiguration
+    type: string
+    default: Release
+
+variables:
+  - name: DOCKER_BUILDKIT
+    value: 1
+
+stages:
+- stage: Build
+  jobs:
+  - job: BuildJob
+    pool:
+      name: Default
+      demands: agent.os -equals Linux
+    steps:
+    - template: ../../step_collections/dotnet-api-build-steps.yml
+      parameters:
+        publishProject: ${{ parameters.publishProject }}
+        netCoreVersion: ${{ parameters.netCoreVersion }}
+        BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }}
+    # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
+    - publish: '$(Build.ArtifactStagingDirectory)' 
+      artifact: '${{ parameters.artifactName }}'
+
+- stage: docker_publish
+  displayName: Create Docker Image
+  jobs:
+  - template: ../../jobs/docker-image-job.yml
+    parameters:
+      dockerImageName: ${{ parameters.dockerImageName}}
+      containerRegistryName: ${{ parameters.containerRegistryName }}
+      containerRegistryUrl: ${{ parameters.containerRegistryUrl }}
+      artifactName: '${{ parameters.artifactName }}'
+      artifactZipName: ${{ parameters.artifactZipName }}
+      dockerImageFileName: ${{ parameters.dockerImageFileName }}
+
+- stage: updateHelmConfig
+  displayName: Update Helm Config Repository
+  dependsOn:
+  - docker_publish
+  jobs:
+  - job: updateHelmConfigJob
+    pool:
+      name: Default
+    steps:
+    - template: ../../publish/helmfileconfig/steps-process-cicd/v1.yml
+      parameters:
+        repositoryResource: ${{ parameters.helmfileRepoName }}
+        branchName: $(Build.SourceBranch)
+        tagsCollection: ${{ parameters.imageTagVariableName }}=$(build.buildnumber)
+        commitMessage: Updated ${{ parameters.imageTagVariableName }} to $(build.buildnumber)
