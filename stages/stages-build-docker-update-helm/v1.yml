@@ -27,6 +27,9 @@ parameters:
   - name: buildConfiguration
     type: string
     default: Release
+  - name: prebuildSteps
+    type: stepList
+    default: []
 
 variables:
   - name: DOCKER_BUILDKIT
@@ -45,6 +48,7 @@ stages:
         publishProject: ${{ parameters.publishProject }}
         netCoreVersion: ${{ parameters.netCoreVersion }}
         BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }}
+        prebuildSteps: ${{ parameters.prebuildSteps }}
     # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
     - publish: '$(Build.ArtifactStagingDirectory)' 
       artifact: '${{ parameters.artifactName }}'

@@ -8,6 +8,9 @@ parameters:
   default: '5.0.x'
 - name: publishProject
   type: string
+- name: prebuildSteps
+  type: stepList
+  default: []
 # TODO - Add test steps (even though there may only be one test)
 steps:
   - task: gitversion/setup@0
@@ -22,6 +25,8 @@ steps:
     inputs:
       packageType: sdk
       version: ${{ parameters.netCoreVersion }}
+
+  - ${{ parameters.prebuildSteps }}
 
   - task: DotNetCoreCLI@2
     displayName: 'DotNet restore packages (dotnet restore)'
