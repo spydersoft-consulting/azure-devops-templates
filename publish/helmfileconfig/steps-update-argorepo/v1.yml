@@ -13,6 +13,9 @@ steps:
 - checkout: ${{ parameters.repositoryResource }}
   clean: true
   persistCredentials: true
+- script: |
+    rm -Rf $(Pipeline.Workspace)/${{ parameters.artifactName }}
+  displayName: Delete Temporary Workspace
 - task: DownloadPipelineArtifact@2
   inputs:
     source: 'current' # Options: current, specific
