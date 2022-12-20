@@ -43,9 +43,6 @@ steps:
         scannerMode: 'MSBuild'
         projectKey: ${{ parameters.sonar_project_key }}
 
-    # Run Code Analysis task
-    - task: SonarQubeAnalyze@5
-
   - ${{ parameters.prebuildSteps }}
 
   - task: DotNetCoreCLI@2
@@ -66,6 +63,8 @@ steps:
       zipAfterPublish: True
 
   - ${{ if eq(parameters.execute_sonar, true) }}:
+    # Run Code Analysis task
+    - task: SonarQubeAnalyze@5
     # Publish Quality Gate Result task
     - task: SonarQubePublish@5
       inputs:
