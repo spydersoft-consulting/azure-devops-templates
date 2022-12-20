@@ -30,6 +30,13 @@ parameters:
   - name: prebuildSteps
     type: stepList
     default: []
+  - name: execute_sonar
+    type: boolean
+    default: false
+  - name: sonar_endpoint_name
+    type: string
+  - name: sonar_project_key
+    type: string
 
 variables:
   - name: DOCKER_BUILDKIT
@@ -49,6 +56,9 @@ stages:
         netCoreVersion: ${{ parameters.netCoreVersion }}
         BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }}
         prebuildSteps: ${{ parameters.prebuildSteps }}
+        execute_sonar: ${{ parameters.execute_sonar }}
+        sonar_endpoint_name: ${{ parameters.sonar_endpoint_name }}
+        sonar_project_key: ${{ parameters.sonar_project_key }}
     # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
     - publish: '$(Build.ArtifactStagingDirectory)' 
       artifact: '${{ parameters.artifactName }}'
