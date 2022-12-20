@@ -33,6 +33,16 @@ steps:
     inputs:
       packageType: sdk
       version: ${{ parameters.netCoreVersion }}
+  - ${{ if eq(parameters.execute_sonar, true) }}:
+    # Prepare Analysis Configuration task
+    - task: SonarQubePrepare@5
+      inputs:
+        SonarQube: ${{ parameters.sonar_endpoint_name }}
+        scannerMode: 'MSBuild'
+        projectKey: ${{ parameters.sonar_project_key }}
+
+    # Run Code Analysis task
+    - task: SonarQubeAnalyze@5
 
   - ${{ parameters.prebuildSteps }}
 
@@ -52,17 +62,8 @@ steps:
       projects: ${{ parameters.publishProject }}
       arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --output $(Build.ArtifactStagingDirectory) /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)'
       zipAfterPublish: True
+
   - ${{ if eq(parameters.execute_sonar, true) }}:
-    # Prepare Analysis Configuration task
-    - task: SonarQubePrepare@5
-      inputs:
-        SonarQube: ${{ parameters.sonar_endpoint_name }}
-        scannerMode: 'MSBuild'
-        projectKey: ${{ parameters.sonar_project_key }}
-
-    # Run Code Analysis task
-    - task: SonarQubeAnalyze@5
-
     # Publish Quality Gate Result task
     - task: SonarQubePublish@5
       inputs:
