@@ -49,6 +49,8 @@ stages:
 - stage: Build
   jobs:
   - job: BuildJob
+    workspace:
+      clean: all
     pool:
       name: Default
       demands: agent.os -equals Linux
