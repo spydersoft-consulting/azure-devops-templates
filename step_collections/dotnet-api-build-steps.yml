@@ -71,18 +71,12 @@ steps:
       inputs:
         command: test
         projects: '**/*tests/*.csproj'
-        arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --collect:"XPlat Code Coverage" --logger trx --results-directory $(Build.SourcesDirectory)/TestResults'
-        publishTestResults: false
-    - task: PublishTestResults@1
-      condition: true # always try publish coverage results, even if unit tests fail
-      inputs:
-        testResultsFormat: 'VSTest' 
-        testResultsFiles: '$(Build.SourcesDirectory)/TestResults/**/*.trx'
-    - task: PublishCodeCoverageResults@1
-      condition: true # always try publish coverage results, even if unit tests fail
-      inputs:
-        codeCoverageTool: 'cobertura' # Options: cobertura, jaCoCo
-        summaryFileLocation: '$(Build.SourcesDirectory)/TestResults/**/*.cobertura.xml'
+        arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --collect:"XPlat Code Coverage"'
+    # - task: PublishCodeCoverageResults@1
+    #   condition: true # always try publish coverage results, even if unit tests fail
+    #   inputs:
+    #     codeCoverageTool: 'cobertura' # Options: cobertura, jaCoCo
+    #     summaryFileLocation: '$(Agent.TempDirectory)/**/*.cobertura.xml'
 
   - ${{ if eq(parameters.execute_sonar, true) }}:
     - powershell: |
@@ -94,7 +88,6 @@ steps:
     - task: SonarQubePublish@5
       inputs:
         pollingTimeoutSec: '300'
-
   - task: DotNetCoreCLI@2
     displayName: Publish (dotnet publish)
     inputs:
