@@ -76,7 +76,7 @@ steps:
     - task: PublishTestResults@1
       condition: true # always try publish coverage results, even if unit tests fail
       inputs:
-        testResultsFormat: 'NUnit' # Options: cobertura, jaCoCo
+        testResultsFormat: 'VSTest' 
         testResultsFiles: '$(Build.SourcesDirectory)/TestResults/**/*.trx'
     - task: PublishCodeCoverageResults@1
       condition: true # always try publish coverage results, even if unit tests fail
