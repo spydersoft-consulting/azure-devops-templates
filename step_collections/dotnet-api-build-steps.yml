@@ -88,3 +88,11 @@ steps:
     - task: SonarQubePublish@5
       inputs:
         pollingTimeoutSec: '300'
+        
+  - task: DotNetCoreCLI@2
+    displayName: Publish (dotnet publish)
+    inputs:
+      command: publish
+      projects: ${{ parameters.publishProject }}
+      arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --output $(Build.ArtifactStagingDirectory) /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)'
+      zipAfterPublish: True
