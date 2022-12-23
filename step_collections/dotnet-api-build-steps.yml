@@ -76,7 +76,7 @@ steps:
       condition: true # always try publish coverage results, even if unit tests fail
       inputs:
         codeCoverageTool: 'cobertura' # Options: cobertura, jaCoCo
-        summaryFileLocation: '**/*.tests/**/*.cobertura.xml'
+        summaryFileLocation: '$(Agent.TempDirectory)/**/*.cobertura.xml'
 
   - ${{ if eq(parameters.execute_sonar, true) }}:
     - powershell: |
