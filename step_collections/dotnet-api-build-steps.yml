@@ -20,6 +20,9 @@ parameters:
 - name: sonar_project_key
   type: string
   default: ""
+- name: execute_tests
+  type: boolean
+  default: false
 
 # TODO - Add test steps (even though there may only be one test)
 steps:
@@ -55,12 +58,25 @@ steps:
       externalFeedCredentials: 'SpydersoftDevelop'
 
   - task: DotNetCoreCLI@2
-    displayName: Publish (dotnet publish)
+    displayName: Build (dotnet build)
     inputs:
-      command: publish
+      command: build
       projects: ${{ parameters.publishProject }}
-      arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --output $(Build.ArtifactStagingDirectory) /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)'
-      zipAfterPublish: True
+      arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)'
+      
+
+  - ${{ if eq(parameters.execute_tests, true) }}:
+    - task: DotNetCoreCLI@2
+      displayName: Test (dotnet test)
+      inputs:
+        command: test
+        projects: '**/*tests/*.csproj'
+        arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --collect:"XPlat Code Coverage"'
+    - task: PublishTestResults@2
+      condition: true # always try publish coverage results, even if unit tests fail
+      inputs:
+        codeCoverageTool: 'cobertura' # Options: cobertura, jaCoCo
+        summaryFileLocation: '**/*.tests/**/*.cobertura.xml'
 
   - ${{ if eq(parameters.execute_sonar, true) }}:
     - powershell: |
