@@ -72,11 +72,11 @@ steps:
         command: test
         projects: '**/*tests/*.csproj'
         arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --collect:"XPlat Code Coverage"'
-    # - task: PublishCodeCoverageResults@1
-    #   condition: true # always try publish coverage results, even if unit tests fail
-    #   inputs:
-    #     codeCoverageTool: 'cobertura' # Options: cobertura, jaCoCo
-    #     summaryFileLocation: '$(Agent.TempDirectory)/**/*.cobertura.xml'
+    - task: PublishCodeCoverageResults@1
+      condition: true # always try publish coverage results, even if unit tests fail
+      inputs:
+        codeCoverageTool: 'cobertura' # Options: cobertura, jaCoCo
+        summaryFileLocation: '$(Agent.TempDirectory)/**/*.cobertura.xml'
 
   - ${{ if eq(parameters.execute_sonar, true) }}:
     - powershell: |
