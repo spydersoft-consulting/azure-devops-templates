@@ -80,17 +80,17 @@ steps:
     - pwsh:
         Push-Location $(Agent.TempDirectory);
         mkdir "ResultFiles";
-        $resultFiles = Get-ChildItem -Directory -Filter resultfiles
+        $resultFiles = Get-ChildItem -Directory -Filter resultfiles;
 
-        $trxFile = Get-ChildItem *.trx
-        Copy-Item $trxFile $resultFiles.FullName
+        $trxFile = Get-ChildItem *.trx;
+        Copy-Item $trxFile $resultFiles.FullName;
         
-        $trxFileName = [System.IO.Path]::GetFileNameWithoutExtension($trxFile)
+        $trxFileName = [System.IO.Path]::GetFileNameWithoutExtension($trxFile);
                
-        Push-Location $trxFilename
-        $coverageFile = Get-ChildItem -Recurse -filter coverage.opencover.xml
-        Copy-Item $coverageFile $resultFiles.FullName
-        Pop-Location
+        Push-Location $trxFilename;
+        $coverageFile = Get-ChildItem -Recurse -filter coverage.opencover.xml;
+        Copy-Item $coverageFile $resultFiles.FullName;
+        Pop-Location;
 
     - task: PublishTestResults@2
       inputs:
