@@ -45,7 +45,7 @@ steps:
         SonarQube: ${{ parameters.sonar_endpoint_name }}
         scannerMode: 'CLI'
         configMode: manual
-        projectKey: ${{ parameters.sonar_project_key }}
+        cliProjectKey: ${{ parameters.sonar_project_key }}
         extraProperties: |
           sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
 
@@ -91,7 +91,7 @@ steps:
         $coverageFile = Get-ChildItem -Recurse -filter coverage.opencover.xml
         Copy-Item $coverageFile $resultFiles.FullName
         Pop-Location
-        
+
     - task: PublishTestResults@2
       inputs:
         testResultsFormat: 'VSTest' # 'JUnit' | 'NUnit' | 'VSTest' | 'XUnit' | 'CTest'. Alias: testRunner. Required. Test result format. Default: JUnit.
