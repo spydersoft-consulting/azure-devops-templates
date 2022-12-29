@@ -43,8 +43,11 @@ steps:
     - task: SonarQubePrepare@5
       inputs:
         SonarQube: ${{ parameters.sonar_endpoint_name }}
-        scannerMode: 'MSBuild'
+        scannerMode: 'CLI'
+        configMode: manual
         projectKey: ${{ parameters.sonar_project_key }}
+        extraProperties: |
+          sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
 
   - ${{ parameters.prebuildSteps }}
 
@@ -71,7 +74,29 @@ steps:
       inputs:
         command: test
         projects: '**/*tests/*.csproj'
-        arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --collect:"XPlat Code Coverage"'
+        publishTestResults: false
+        arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
+    
+    - pwsh:
+        Push-Location $(Agent.TempDirectory);
+        mkdir "ResultFiles";
+        $resultFiles = Get-ChildItem -Directory -Filter resultfiles
+
+        $trxFile = Get-ChildItem *.trx
+        Copy-Item $trxFile $resultFiles.FullName
+        
+        $trxFileName = [System.IO.Path]::GetFileNameWithoutExteCopy-Item $coverageFile $resultFiles.FullNamension($trxFile)
+               
+        Push-Location $trxFilename
+        $coverageFile = Get-ChildItem -Recurse -filter coverage.opencover.xml
+        Copy-Item $coverageFile $resultFiles.FullName
+        Pop-Location
+        
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: 'VSTest' # 'JUnit' | 'NUnit' | 'VSTest' | 'XUnit' | 'CTest'. Alias: testRunner. Required. Test result format. Default: JUnit.
+        testResultsFiles: '$(Agent.TempDirectory)/ResultTiles/*.trx'
+
     - task: PublishCodeCoverageResults@1
       condition: true # always try publish coverage results, even if unit tests fail
       inputs:
