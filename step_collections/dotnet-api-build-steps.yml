@@ -43,9 +43,9 @@ steps:
     - task: SonarQubePrepare@5
       inputs:
         SonarQube: ${{ parameters.sonar_endpoint_name }}
-        scannerMode: 'CLI'
-        configMode: manual
-        cliProjectKey: ${{ parameters.sonar_project_key }}
+        scannerMode: 'MSBuild'
+        ##configMode: manual
+        projectKey: ${{ parameters.sonar_project_key }}
         extraProperties: |
           sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
 
@@ -86,22 +86,26 @@ steps:
         Copy-Item $trxFile $resultFiles.FullName;
         
         $trxFileName = [System.IO.Path]::GetFileNameWithoutExtension($trxFile);
-               
+              
         Push-Location $trxFilename;
-        $coverageFile = Get-ChildItem -Recurse -filter coverage.opencover.xml;
-        Copy-Item $coverageFile $resultFiles.FullName;
+        $coverageFiles = Get-ChildItem -Recurse -filter coverage.*.xml;
+        foreach ($coverageFile in $coverageFiles) 
+        {
+          Copy-Item $coverageFile $resultFiles.FullName;
+        }
         Pop-Location;
+      displayName: Copy Test Files
 
     - task: PublishTestResults@2
       inputs:
         testResultsFormat: 'VSTest' # 'JUnit' | 'NUnit' | 'VSTest' | 'XUnit' | 'CTest'. Alias: testRunner. Required. Test result format. Default: JUnit.
-        testResultsFiles: '$(Agent.TempDirectory)/ResultTiles/*.trx'
+        testResultsFiles: '$(Agent.TempDirectory)/ResultFiles/*.trx'
 
     - task: PublishCodeCoverageResults@1
       condition: true # always try publish coverage results, even if unit tests fail
       inputs:
         codeCoverageTool: 'cobertura' # Options: cobertura, jaCoCo
-        summaryFileLocation: '$(Agent.TempDirectory)/**/*.cobertura.xml'
+        summaryFileLocation: '$(Agent.TempDirectory)/ResultFiles/**/coverage.cobertura.xml'
 
   - ${{ if eq(parameters.execute_sonar, true) }}:
     - powershell: |
