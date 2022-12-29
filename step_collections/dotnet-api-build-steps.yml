@@ -85,7 +85,7 @@ steps:
         $trxFile = Get-ChildItem *.trx
         Copy-Item $trxFile $resultFiles.FullName
         
-        $trxFileName = [System.IO.Path]::GetFileNameWithoutExteCopy-Item $coverageFile $resultFiles.FullNamension($trxFile)
+        $trxFileName = [System.IO.Path]::GetFileNameWithoutExtension($trxFile)
                
         Push-Location $trxFilename
         $coverageFile = Get-ChildItem -Recurse -filter coverage.opencover.xml
