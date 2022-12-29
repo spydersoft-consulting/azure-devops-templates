@@ -83,8 +83,6 @@ steps:
         $resultFiles = Get-ChildItem -Directory -Filter resultfiles;
 
         $trxFile = Get-ChildItem *.trx;
-        Copy-Item $trxFile $resultFiles.FullName;
-        
         $trxFileName = [System.IO.Path]::GetFileNameWithoutExtension($trxFile);
               
         Push-Location $trxFilename;
@@ -99,7 +97,7 @@ steps:
     - task: PublishTestResults@2
       inputs:
         testResultsFormat: 'VSTest' # 'JUnit' | 'NUnit' | 'VSTest' | 'XUnit' | 'CTest'. Alias: testRunner. Required. Test result format. Default: JUnit.
-        testResultsFiles: '$(Agent.TempDirectory)/ResultFiles/*.trx'
+        testResultsFiles: '$(Agent.TempDirectory)/*.trx'
 
     - task: PublishCodeCoverageResults@1
       condition: true # always try publish coverage results, even if unit tests fail
