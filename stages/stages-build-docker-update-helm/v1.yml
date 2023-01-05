@@ -30,6 +30,9 @@ parameters:
   - name: prebuildSteps
     type: stepList
     default: []
+  - name: preTestSteps
+    type: stepList
+    default: []
   - name: execute_sonar
     type: boolean
     default: false
@@ -61,6 +64,7 @@ stages:
         netCoreVersion: ${{ parameters.netCoreVersion }}
         BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }}
         prebuildSteps: ${{ parameters.prebuildSteps }}
+        preTestSteps: ${{ parameters.preTestSteps }}
         execute_sonar: ${{ parameters.execute_sonar }}
         sonar_endpoint_name: ${{ parameters.sonar_endpoint_name }}
         sonar_project_key: ${{ parameters.sonar_project_key }}

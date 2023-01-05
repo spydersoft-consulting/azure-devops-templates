@@ -11,6 +11,9 @@ parameters:
 - name: prebuildSteps
   type: stepList
   default: []
+- name: preTestSteps
+  type: stepList
+  default: []
 - name: execute_sonar
   type: boolean
   default: false
@@ -69,6 +72,8 @@ steps:
       
 
   - ${{ if eq(parameters.execute_tests, true) }}:
+    - ${{ parameters.preTestSteps }}
+
     - task: DotNetCoreCLI@2
       displayName: Test (dotnet test)
       inputs:
@@ -85,13 +90,16 @@ steps:
         $trxFile = Get-ChildItem *.trx;
         $trxFileName = [System.IO.Path]::GetFileNameWithoutExtension($trxFile);
               
-        Push-Location $trxFilename;
-        $coverageFiles = Get-ChildItem -Recurse -filter coverage.*.xml;
-        foreach ($coverageFile in $coverageFiles) 
-        {
-          Copy-Item $coverageFile $resultFiles.FullName;
+        if (Test-Path $trxFilename) {      
+          Push-Location $trxFilename;
+          $coverageFiles = Get-ChildItem -Recurse -filter coverage.*.xml;
+          foreach ($coverageFile in $coverageFiles) 
+          {
+            Copy-Item $coverageFile $resultFiles.FullName;
+          }
+        
+          Pop-Location;
         }
-        Pop-Location;
       displayName: Copy Test Files
 
     - task: PublishTestResults@2
