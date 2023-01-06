@@ -1,6 +1,8 @@
 parameters:
   - name: publishProject
     type: string
+  - name: buildProject
+    type: string
   - name: artifactName
     type: string
   - name: artifactZipName
@@ -60,6 +62,7 @@ stages:
     steps:
     - template: ../../step_collections/dotnet-api-build-steps.yml
       parameters:
+        buildProject: ${{ parameters.buildProject }}
         publishProject: ${{ parameters.publishProject }}
         netCoreVersion: ${{ parameters.netCoreVersion }}
         BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }}

@@ -6,6 +6,8 @@ parameters:
 - name: netCoreVersion
   type: string
   default: '5.0.x'
+- name: buildProject
+  type: string
 - name: publishProject
   type: string
 - name: prebuildSteps
@@ -67,7 +69,7 @@ steps:
     displayName: Build (dotnet build)
     inputs:
       command: build
-      projects: ${{ parameters.publishProject }}
+      projects: ${{ parameters.buildProject }}
       arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)'
       
 
