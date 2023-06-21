@@ -14,6 +14,12 @@ parameters:
 - name: dockerFilePath
   type: string
   default: $(Build.SourcesDirectory)/Dockerfile.simple
+- name: dockerBuildBasePath
+  type: string
+  default: $(Pipeline.Workspace)/dockerFiles
+- name: artifactTargetPath
+  type: string
+  default: ''
 - name: prebuild_steps
   type: stepList
   default: []
@@ -32,14 +38,14 @@ jobs:
       displayName: Extract Build Files
       inputs:
         archiveFilePatterns: '$(Pipeline.Workspace)/${{ parameters.artifactName }}/${{ parameters.artifactZipName }}.zip' 
-        destinationFolder: $(Pipeline.Workspace)/publishFiles
+        destinationFolder: ${{ parameters.dockerBuildBasePath }}/${{ parameters.artifactTargetPath }}
         cleanDestinationFolder: true   
     - task: Bash@3
       displayName: Copy Docker file to build folder
       inputs:
         targetType: 'inline'
         script: |
-          cp ${{ parameters.dockerFilePath }} $(Pipeline.Workspace)/publishFiles/Dockerfile
+          cp ${{ parameters.dockerFilePath }} ${{ parameters.dockerBuildBasePath }}/Dockerfile
     - ${{ parameters.prebuild_steps }}
     - task: Docker@2
       displayName: Build Image
@@ -47,8 +53,8 @@ jobs:
         command: 'build'
         containerRegistry: ${{ parameters.containerRegistryName }}
         repository: ${{ parameters.dockerImageName }}
-        Dockerfile: '$(Pipeline.Workspace)/publishFiles/Dockerfile'
-        buildContext: '$(Pipeline.Workspace)/publishFiles'
+        Dockerfile: '${{ parameters.dockerBuildBasePath }}/Dockerfile'
+        buildContext: '${{ parameters.dockerBuildBasePath }}'
         tags: |
           $(build.buildnumber)
 
