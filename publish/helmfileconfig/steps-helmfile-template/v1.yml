@@ -32,14 +32,14 @@ steps:
     cwd: $(System.DefaultWorkingDirectory)/${{ parameters.helmfileDirectory }}
 - ${{ parameters.pre_generate_steps }}
 - script: |
-    curl -L https://github.com/roboll/helmfile/releases/download/v0.135.0/helmfile_linux_amd64 > $(Agent.TempDirectory)/helmfile
+    curl -L https://github.com/helmfile/helmfile/releases/download/v0.154.0/helmfile_0.154.0_linux_amd64.tar.gz > $(Agent.TempDirectory)/helmfile.tar.gz
+    tar -xvf $(Agent.TempDirectory)/helmfile.tar.gz -C $(Agent.TempDirectory)
     chmod +x $(Agent.TempDirectory)/helmfile
   displayName: ${{ parameters.displayPrefix }} - Install Helmfile
 - script: |
     cd ${{ parameters.helmfileDirectory }}
-    helm repo add common https://bjw-s.github.io/helm-charts
-    helm repo add library-charts https://library-charts.k8s-at-home.com
-  displayName: ${{ parameters.displayPrefix }} - Update Dependencies
+    helmfile repos --environment ${{ parameters.environmentName }}
+  displayName: ${{ parameters.displayPrefix }} - Add Dependencies
 - script: |
     cd ${{ parameters.helmfileDirectory }}
     rm -Rf $(Build.ArtifactStagingDirectory)/output/${{ parameters.environmentName }}
