@@ -11,6 +11,9 @@ parameters:
   type: string
 - name: artifactZipName
   type: string
+- name: dockerFilePath
+  type: string
+  default: $(Build.SourcesDirectory)/Dockerfile.simple
 
 jobs:
 - job: create_docker_image_and_publish
@@ -34,7 +37,7 @@ jobs:
       inputs:
         targetType: 'inline'
         script: |
-          cp $(Build.SourcesDirectory)/Dockerfile.simple $(Pipeline.Workspace)/publishFiles/Dockerfile
+          cp ${{ parameters.dockerFilePath }} $(Pipeline.Workspace)/publishFiles/Dockerfile
 
     - task: Docker@2
       displayName: Build Image
