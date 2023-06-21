@@ -21,7 +21,8 @@ jobs:
     - task: DownloadPipelineArtifact@2
       inputs:
         buildType: 'current'
-        artifactName: "${{ parameters.artifactName }}" 
+        artifactName: '${{ parameters.artifactName }}'
+        targetPath:  '$(Pipeline.Workspace)/${{ parameters.artifactName }}'
     - task: ExtractFiles@1
       displayName: Extract Build Files
       inputs:
