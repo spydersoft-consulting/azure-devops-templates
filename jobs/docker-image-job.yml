@@ -19,7 +19,7 @@ jobs:
     name: Default
   steps:
     - download: current
-      artifact: ${{ parameters.artifactName }}
+      artifact: "${{ parameters.artifactName }}"
     - task: ExtractFiles@1
       displayName: Extract Build Files
       inputs:
