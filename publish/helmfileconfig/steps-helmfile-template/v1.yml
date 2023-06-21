@@ -37,7 +37,8 @@ steps:
   displayName: ${{ parameters.displayPrefix }} - Install Helmfile
 - script: |
     cd ${{ parameters.helmfileDirectory }}
-    helm repo add library-charts https://bjw-s.github.io/helm-charts
+    helm repo add common https://bjw-s.github.io/helm-charts
+    helm repo add library-charts https://library-charts.k8s-at-home.com
   displayName: ${{ parameters.displayPrefix }} - Update Dependencies
 - script: |
     cd ${{ parameters.helmfileDirectory }}
