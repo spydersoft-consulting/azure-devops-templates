@@ -18,8 +18,10 @@ jobs:
   pool:
     name: Default
   steps:
-    - download: current
-      artifact: "${{ parameters.artifactName }}"
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        artifactName: "${{ parameters.artifactName }}" 
     - task: ExtractFiles@1
       displayName: Extract Build Files
       inputs:
