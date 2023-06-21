@@ -38,7 +38,7 @@ steps:
   displayName: ${{ parameters.displayPrefix }} - Install Helmfile
 - script: |
     cd ${{ parameters.helmfileDirectory }}
-    helmfile repos --environment ${{ parameters.environmentName }}
+    $(Agent.TempDirectory)/helmfile repos --environment ${{ parameters.environmentName }}
   displayName: ${{ parameters.displayPrefix }} - Add Dependencies
 - script: |
     cd ${{ parameters.helmfileDirectory }}
