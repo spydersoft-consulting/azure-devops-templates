@@ -100,6 +100,8 @@ stages:
   - job: updateHelmConfigJob
     pool:
       name: Default
+    workspace:
+      clean: all
     steps:
     - template: ../../publish/helmfileconfig/steps-process-cicd/v1.yml
       parameters:
