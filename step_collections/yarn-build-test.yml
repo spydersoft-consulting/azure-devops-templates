@@ -9,7 +9,7 @@ parameters:
   default: 'output/test/junit.xml'
   type: string
 - name: 'codeCoverageFile'
-  default: 'output/coverage/jest/cobertura-coverage.xml'
+  default: 'output/coverage/cobertura-coverage.xml'
   type: string
 - name: 'workingDir'
   default: '$(Build.SourcesDirectory)'
