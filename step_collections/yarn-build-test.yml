@@ -51,32 +51,22 @@ steps:
     versionSource: 'spec'
     versionSpec: '${{ parameters.nodeVersion }}' # 16.19.0, 18.14.1, etc
 
-- task: YarnInstaller@3
-  displayName: Install Yarn
-  inputs:
-    versionSpec: '3.x'
-    checkLatest: true
-    includePrerelease: false
-
-- task: Yarn@3
+- pwsh: |
+    cd ${{ parameters.workingDir }}
+    yarn install
   displayName: Yarn install
-  inputs:
-    projectDirectory: '${{ parameters.workingDir }}'
-    arguments: install
 
-- task: Yarn@3
+- pwsh: |
+    cd ${{ parameters.workingDir }}
+    yarn version --new-version $(fullSemVer) --no-git-tag-version
   displayName: Set Version
-  inputs:
-    arguments: version --new-version $(fullSemVer) --no-git-tag-version
-    projectDirectory: '${{ parameters.workingDir }}'
 
 - ${{ if eq(parameters.runTests, true) }}:
-  - task: Yarn@3
+  - pwsh: |
+      cd ${{ parameters.workingDir }}
+      yarn test-ci
     displayName: Run CI Unit Tests (test-ci)
-    inputs:
-      arguments: test-ci
-      projectDirectory: '${{ parameters.workingDir }}'
-
+  
   - task: PublishTestResults@2
     displayName: Publish Test Results
     inputs:
@@ -90,11 +80,10 @@ steps:
       codeCoverageTool: 'cobertura'
       summaryFileLocation: '${{ parameters.codeCoverageFile }}'
 
-- task: Yarn@3
+- pwsh: |
+    cd ${{ parameters.workingDir }}
+    yarn build
   displayName: Build 
-  inputs:
-    arguments: build
-    projectDirectory: '${{ parameters.workingDir }}'
 
 - ${{ parameters.postBuildSteps }}
 
