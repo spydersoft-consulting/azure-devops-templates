@@ -51,26 +51,27 @@ steps:
     versionSource: 'spec'
     versionSpec: '${{ parameters.nodeVersion }}' # 16.19.0, 18.14.1, etc
 
-- task: geeklearningio.gl-vsts-tasks-yarn-dev.yarn-installer-task.YarnInstaller@3
+- task: YarnInstaller@3
   displayName: Install Yarn
   inputs:
+    versionSpec: '3.x'
     checkLatest: true
     includePrerelease: false
 
-- task: geeklearningio.gl-vsts-tasks-yarn.yarn-task.Yarn@3
+- task: Yarn@3
   displayName: Yarn install
   inputs:
     projectDirectory: '${{ parameters.workingDir }}'
     arguments: install
 
-- task: geeklearningio.gl-vsts-tasks-yarn.yarn-task.Yarn@3
+- task: Yarn@3
   displayName: Set Version
   inputs:
     arguments: version --new-version $(fullSemVer) --no-git-tag-version
     projectDirectory: '${{ parameters.workingDir }}'
 
 - ${{ if eq(parameters.runTests, true) }}:
-  - task: geeklearningio.gl-vsts-tasks-yarn.yarn-task.Yarn@3
+  - task: Yarn@3
     displayName: Run CI Unit Tests (test-ci)
     inputs:
       arguments: test-ci
@@ -89,7 +90,7 @@ steps:
       codeCoverageTool: 'cobertura'
       summaryFileLocation: '${{ parameters.codeCoverageFile }}'
 
-- task: geeklearningio.gl-vsts-tasks-yarn.yarn-task.Yarn@3
+- task: Yarn@3
   displayName: Build 
   inputs:
     arguments: build
