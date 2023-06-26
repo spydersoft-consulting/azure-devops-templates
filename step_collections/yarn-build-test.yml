@@ -63,13 +63,13 @@ steps:
   - pwsh: |
       cd ${{ parameters.workingDir }}
       $packageJson = Get-Content -Raw -Path package.json | ConvertFrom-Json
-      $packageJson.version = $(fullSemVer)
+      $packageJson.version = "$(fullSemVer)"
       $packageJson | ConvertTo-Json -Depth 100 | Set-Content -Path package.json
     displayName: Set Version (Yarn 2)
 - ${{ if eq(parameters.useYarn2, false) }}:
   - pwsh: |
       cd ${{ parameters.workingDir }}
-      yarn version --new-version $(fullSemVer) --no-git-tag-version
+      yarn version --new-version "$(fullSemVer)" --no-git-tag-version
     displayName: Set Version
 
 - ${{ if eq(parameters.runTests, true) }}:
