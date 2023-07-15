@@ -34,6 +34,9 @@ parameters:
 
 # TODO - Add test steps (even though there may only be one test)
 steps:
+  - checkout: self
+    fetchDepth: 0
+    clean: true
   - task: gitversion/setup@0
     displayName: Setup GitVersion on Agent
     inputs:
