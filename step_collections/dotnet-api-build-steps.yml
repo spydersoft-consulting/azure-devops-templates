@@ -90,7 +90,7 @@ steps:
         publishTestResults: false
         arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
     
-    - pwsh:
+    - pwsh: |
         Push-Location $(Agent.TempDirectory);
         mkdir "ResultFiles";
         $resultFiles = Get-ChildItem -Directory -Filter resultfiles;
