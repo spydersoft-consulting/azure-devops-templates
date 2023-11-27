@@ -28,6 +28,9 @@ parameters:
 - name: sonar_project_name
   type: string
   default: ""
+- name: use_sonarcloud
+  type: boolean
+  default: false
 - name: execute_tests
   type: boolean
   default: false
@@ -51,15 +54,26 @@ steps:
 
 
   - ${{ if eq(parameters.execute_sonar, true) }}:
-    # Prepare Analysis Configuration task
-    - task: SonarQubePrepare@5
-      inputs:
-        SonarQube: ${{ parameters.sonar_endpoint_name }}
-        scannerMode: 'MSBuild'
-        projectKey: ${{ parameters.sonar_project_key }}
-        projectName: ${{ parameters.sonar_project_name }}
-        extraProperties: |
-          sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
+    - ${{ if eq(parameters.use_sonarcloud, true) }}:
+      # Prepare Analysis Configuration task
+      - task: SonarCloudPrepare@5
+        inputs:
+          SonarCloud: ${{ parameters.sonar_endpoint_name }}
+          scannerMode: 'MSBuild'
+          projectKey: ${{ parameters.sonar_project_key }}
+          projectName: ${{ parameters.sonar_project_name }}
+          extraProperties: |
+            sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
+    - ${{ else }}:
+      # Prepare Analysis Configuration task
+      - task: SonarQubePrepare@5
+        inputs:
+          SonarQube: ${{ parameters.sonar_endpoint_name }}
+          scannerMode: 'MSBuild'
+          projectKey: ${{ parameters.sonar_project_key }}
+          projectName: ${{ parameters.sonar_project_name }}
+          extraProperties: |
+            sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
 
   - ${{ parameters.prebuildSteps }}
 
@@ -126,12 +140,21 @@ steps:
     - powershell: |
         $params = "$env:SONARQUBE_SCANNER_PARAMS" -replace '"sonar.branch.name":"[\w,/,-]*"\,?'
         Write-Host "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$params"
-    # Run Code Analysis task
-    - task: SonarQubeAnalyze@5
-    # Publish Quality Gate Result task
-    - task: SonarQubePublish@5
-      inputs:
-        pollingTimeoutSec: '300'
+    - ${{ if eq(parameters.use_sonarcloud, true) }}:
+      # Run Code Analysis task
+      - task: SonarCloudAnalyze@5
+      # Publish Quality Gate Result task
+      - task: SonarCloudPublish@5
+        inputs:
+          pollingTimeoutSec: '300'
+    - ${{ else }}:
+      # Run Code Analysis task
+      - task: SonarQubeAnalyze@5
+      # Publish Quality Gate Result task
+      - task: SonarQubePublish@5
+        inputs:
+          pollingTimeoutSec: '300'
+          
   - task: DotNetCoreCLI@2
     displayName: Publish (dotnet publish)
     inputs:

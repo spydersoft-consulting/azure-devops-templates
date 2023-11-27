@@ -48,7 +48,9 @@ parameters:
   - name: execute_tests
     type: boolean
     default: false
-
+  - name: use_sonarcloud
+    type: boolean
+    default: false
 variables:
   - name: DOCKER_BUILDKIT
     value: 1
@@ -76,6 +78,7 @@ stages:
         sonar_project_key: ${{ parameters.sonar_project_key }}
         sonar_project_name: ${{ parameters.sonar_project_name }}
         execute_tests: ${{ parameters.execute_tests }}
+        use_sonarcloud: ${{ parameters.use_sonarcloud }}
     # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
     - publish: '$(Build.ArtifactStagingDirectory)' 
       artifact: '${{ parameters.artifactName }}'
