@@ -82,6 +82,7 @@ stages:
         sonar_project_name: ${{ parameters.sonar_project_name }}
         execute_tests: ${{ parameters.execute_tests }}
         use_sonarcloud: ${{ parameters.use_sonarcloud }}
+        sonar_cloud_organization: ${{ parameters.sonar_cloud_organization }}
     # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
     - publish: '$(Build.ArtifactStagingDirectory)' 
       artifact: '${{ parameters.artifactName }}'
