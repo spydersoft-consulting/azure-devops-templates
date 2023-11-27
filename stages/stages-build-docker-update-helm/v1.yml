@@ -51,6 +51,9 @@ parameters:
   - name: use_sonarcloud
     type: boolean
     default: false
+  - name: sonar_cloud_organization
+    type: string
+    default: ""
 variables:
   - name: DOCKER_BUILDKIT
     value: 1
