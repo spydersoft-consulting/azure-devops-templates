@@ -56,7 +56,7 @@ steps:
   - ${{ if eq(parameters.execute_sonar, true) }}:
     - ${{ if eq(parameters.use_sonarcloud, true) }}:
       # Prepare Analysis Configuration task
-      - task: SonarCloudPrepare@5
+      - task: SonarCloudPrepare@1
         inputs:
           SonarCloud: ${{ parameters.sonar_endpoint_name }}
           scannerMode: 'MSBuild'
@@ -142,9 +142,9 @@ steps:
         Write-Host "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$params"
     - ${{ if eq(parameters.use_sonarcloud, true) }}:
       # Run Code Analysis task
-      - task: SonarCloudAnalyze@5
+      - task: SonarCloudAnalyze@1
       # Publish Quality Gate Result task
-      - task: SonarCloudPublish@5
+      - task: SonarCloudPublish@1
         inputs:
           pollingTimeoutSec: '300'
     - ${{ else }}:
@@ -154,7 +154,7 @@ steps:
       - task: SonarQubePublish@5
         inputs:
           pollingTimeoutSec: '300'
-          
+
   - task: DotNetCoreCLI@2
     displayName: Publish (dotnet publish)
     inputs:
