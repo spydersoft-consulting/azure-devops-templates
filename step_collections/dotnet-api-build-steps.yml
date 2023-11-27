@@ -147,6 +147,8 @@ steps:
     - ${{ if eq(parameters.use_sonarcloud, true) }}:
       # Run Code Analysis task
       - task: SonarCloudAnalyze@1
+        inputs:
+          jdkversion: 'JAVA_HOME_17_X64'
       # Publish Quality Gate Result task
       - task: SonarCloudPublish@1
         inputs:
