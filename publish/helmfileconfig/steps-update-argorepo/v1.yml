@@ -26,7 +26,7 @@ steps:
     git config --global user.name "CI/CD User"
     cd $(Build.SourcesDirectory)
     git checkout main
-    git pull
+    git pull --rebase
     rm -Rf $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }}
     mkdir -p $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }}
 
@@ -34,4 +34,4 @@ steps:
     git add --all
     git commit -m "${{ parameters.commitMessage }}"
     git push origin main
-  displayName: List Output
+  displayName: Commit to Argo Repo
