@@ -54,6 +54,9 @@ parameters:
   - name: sonar_cloud_organization
     type: string
     default: ""
+  - name: test_projects
+    type: string
+    default: "**/*tests/*.csproj"
 variables:
   - name: DOCKER_BUILDKIT
     value: 1
@@ -81,6 +84,7 @@ stages:
         sonar_project_key: ${{ parameters.sonar_project_key }}
         sonar_project_name: ${{ parameters.sonar_project_name }}
         execute_tests: ${{ parameters.execute_tests }}
+        test_projects: ${{ parameters.test_projects }}
         use_sonarcloud: ${{ parameters.use_sonarcloud }}
         sonar_cloud_organization: ${{ parameters.sonar_cloud_organization }}
     # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
