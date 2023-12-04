@@ -141,9 +141,6 @@ steps:
         summaryFileLocation: '$(Agent.TempDirectory)/ResultFiles/**/coverage.cobertura.xml'
 
   - ${{ if eq(parameters.execute_sonar, true) }}:
-    - powershell: |
-        $params = "$env:SONARQUBE_SCANNER_PARAMS" -replace '"sonar.branch.name":"[\w,/,-]*"\,?'
-        Write-Host "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$params"
     - ${{ if eq(parameters.use_sonarcloud, true) }}:
       # Run Code Analysis task
       - task: SonarCloudAnalyze@1
@@ -154,6 +151,10 @@ steps:
         inputs:
           pollingTimeoutSec: '300'
     - ${{ else }}:
+      - powershell: |
+          $params = "$env:SONARQUBE_SCANNER_PARAMS" -replace '"sonar.branch.name":"[\w,/,-]*"\,?'
+          Write-Host "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$params"
+        displayName: Replace branch name
       # Run Code Analysis task
       - task: SonarQubeAnalyze@5
       # Publish Quality Gate Result task
