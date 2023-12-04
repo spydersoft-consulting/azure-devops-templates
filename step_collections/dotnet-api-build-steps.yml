@@ -37,6 +37,9 @@ parameters:
 - name: execute_tests
   type: boolean
   default: false
+- name: test_projects
+  type: string
+  default: "**/*tests/*.csproj"
 
 # TODO - Add test steps (even though there may only be one test)
 steps:
@@ -105,7 +108,7 @@ steps:
       displayName: Test (dotnet test)
       inputs:
         command: test
-        projects: '**/*tests/*.csproj'
+        projects: ${{ parameters.test_projects}}
         publishTestResults: false
         arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
     
