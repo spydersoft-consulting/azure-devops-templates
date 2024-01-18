@@ -42,8 +42,10 @@ parameters:
     default: false
   - name: sonar_endpoint_name
     type: string
+    default: ""
   - name: sonar_project_key
     type: string
+    default: ""
   - name: sonar_project_name
     type: string
     default: ""
