@@ -107,20 +107,21 @@ stages:
       artifactZipName: ${{ parameters.artifactZipName }}
       dockerImageFileName: ${{ parameters.dockerImageFileName }}
 
-- stage: updateHelmConfig
-  displayName: Update Helm Config Repository
-  dependsOn:
-  - docker_publish
-  jobs:
-  - job: updateHelmConfigJob
-    pool:
-      name: Default
-    workspace:
-      clean: all
-    steps:
-    - template: ../../publish/helmfileconfig/steps-process-cicd/v1.yml
-      parameters:
-        repositoryResource: ${{ parameters.helmfileRepoName }}
-        branchName: $(Build.SourceBranch)
-        tagsCollection: ${{ parameters.imageTagVariableName }}=$(build.buildnumber)
-        commitMessage: Updated ${{ parameters.imageTagVariableName }} to $(build.buildnumber)
+- ${{ if eq(parameters.updateHelmConfig, true) }}:
+  - stage: updateHelmConfig
+    displayName: Update Helm Config Repository
+    dependsOn:
+    - docker_publish
+    jobs:
+    - job: updateHelmConfigJob
+      pool:
+        name: Default
+      workspace:
+        clean: all
+      steps:
+      - template: ../../publish/helmfileconfig/steps-process-cicd/v1.yml
+        parameters:
+          repositoryResource: ${{ parameters.helmfileRepoName }}
+          branchName: $(Build.SourceBranch)
+          tagsCollection: ${{ parameters.imageTagVariableName }}=$(build.buildnumber)
+          commitMessage: Updated ${{ parameters.imageTagVariableName }} to $(build.buildnumber)
