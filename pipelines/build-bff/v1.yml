@@ -1,0 +1,140 @@
+parameters:
+# BFF API Parameters
+  - name: publishProject
+    type: string
+  - name: buildProject
+    type: string
+  - name: bff_execute_sonar
+    type: boolean
+    default: false
+  - name: bff_sonar_endpoint_name
+    type: string
+  - name: bff_sonar_project_key
+    type: string
+  - name: bff_sonar_project_name
+    type: string
+    default: ""
+  - name: bff_execute_tests
+    type: boolean
+    default: false
+  - name: bff_use_sonarcloud
+    type: boolean
+    default: false
+  - name: bff_sonar_cloud_organization
+    type: string
+    default: ""
+  - name: bff_test_projects
+    type: string
+    default: "**/*tests/*.csproj"
+
+# UI Build
+  - name: ui_source_directory
+    type: string
+    default: "src/ui"
+
+  - name: artifactName
+    type: string
+  - name: artifactZipName
+    type: string
+
+  - name: dockerImageFileName
+    type: string
+  - name: dockerImageName
+    type: string
+  - name: imageTagVariableName
+    type: string
+  - name: helmfileRepoName
+    type: string
+  
+  - name: netCoreVersion
+    type: string
+    default: '6.0.x'
+  - name: containerRegistryName
+    type: string
+    default: proget_docker
+  - name: containerRegistryUrl
+    type: string
+    default: proget.mattgerega.com
+  - name: buildConfiguration
+    type: string
+    default: Release
+  - name: prebuildSteps
+    type: stepList
+    default: []
+  - name: preTestSteps
+    type: stepList
+    default: []
+
+  - name: modifyHelmfile
+    type: boolean
+    default: false
+
+variables:
+  - name: DOCKER_BUILDKIT
+    value: 1
+
+stages:
+- stage: Build
+  jobs:
+  - job: BuildJob
+    workspace:
+      clean: all
+    pool:
+      name: Default
+      demands: agent.os -equals Linux
+    steps:
+    - template: ../../step_collections/yarn-build-test.yml
+      parameters:
+        nodeVersion: "21.4.0"
+        zipBuildArtifacts: false
+        workingDir: ${{ parameters.ui_source_directory }}
+    - template: ../../step_collections/dotnet-api-build-steps.yml
+      parameters:
+        buildProject: ${{ parameters.buildProject }}
+        publishProject: ${{ parameters.publishProject }}
+        netCoreVersion: ${{ parameters.netCoreVersion }}
+        BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }}
+        prebuildSteps: ${{ parameters.prebuildSteps }}
+        preTestSteps: ${{ parameters.preTestSteps }}
+        execute_sonar: ${{ parameters.bff_execute_sonar }}
+        sonar_endpoint_name: ${{ parameters.bff_sonar_endpoint_name }}
+        sonar_project_key: ${{ parameters.bff_sonar_project_key }}
+        sonar_project_name: ${{ parameters.bff_sonar_project_name }}
+        execute_tests: ${{ parameters.bff_execute_tests }}
+        test_projects: ${{ parameters.bff_test_projects }}
+        use_sonarcloud: ${{ parameters.bff_use_sonarcloud }}
+        sonar_cloud_organization: ${{ parameters.bff_sonar_cloud_organization }}
+    # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
+    - publish: '$(Build.ArtifactStagingDirectory)' 
+      artifact: '${{ parameters.artifactName }}'
+
+- stage: docker_publish
+  displayName: Create Docker Image
+  jobs:
+  - template: ../../jobs/docker-image-job.yml
+    parameters:
+      dockerImageName: ${{ parameters.dockerImageName}}
+      containerRegistryName: ${{ parameters.containerRegistryName }}
+      containerRegistryUrl: ${{ parameters.containerRegistryUrl }}
+      artifactName: '${{ parameters.artifactName }}'
+      artifactZipName: ${{ parameters.artifactZipName }}
+      dockerImageFileName: ${{ parameters.dockerImageFileName }}
+
+- ${{ if eq(parameters.modifyHelmfile, true) }}:
+  - stage: updateHelmConfig
+    displayName: Update Helm Config Repository
+    dependsOn:
+    - docker_publish
+    jobs:
+    - job: updateHelmConfigJob
+      pool:
+        name: Default
+      workspace:
+        clean: all
+      steps:
+      - template: ../../publish/helmfileconfig/steps-process-cicd/v1.yml
+        parameters:
+          repositoryResource: ${{ parameters.helmfileRepoName }}
+          branchName: $(Build.SourceBranch)
+          tagsCollection: ${{ parameters.imageTagVariableName }}=$(build.buildnumber)
+          commitMessage: Updated ${{ parameters.imageTagVariableName }} to $(build.buildnumber)
