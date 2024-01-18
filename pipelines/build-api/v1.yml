@@ -11,6 +11,9 @@ parameters:
     type: string
   - name: dockerImageName
     type: string
+  - name: dockerFilePath
+    type: string
+    default: Dockerfile
   - name: imageTagVariableName
     type: string
   - name: helmfileRepoName
@@ -106,6 +109,7 @@ stages:
       artifactName: '${{ parameters.artifactName }}'
       artifactZipName: ${{ parameters.artifactZipName }}
       dockerImageFileName: ${{ parameters.dockerImageFileName }}
+      dockerFilePath: ${{ parameters.dockerFilePath }}
 
 - ${{ if eq(parameters.updateHelmConfig, true) }}:
   - stage: updateHelmConfig
