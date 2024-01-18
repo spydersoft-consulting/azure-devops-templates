@@ -64,6 +64,9 @@ parameters:
   - name: preTestSteps
     type: stepList
     default: []
+  - name: dockerFilePath
+    type: string
+    default: $(Build.SourcesDirectory)/Dockerfile.simple
 
   - name: modifyHelmfile
     type: boolean
@@ -135,6 +138,7 @@ stages:
       artifactName: '${{ parameters.artifactName }}'
       artifactZipName: ${{ parameters.artifactZipName }}
       dockerImageFileName: ${{ parameters.dockerImageFileName }}
+      dockerFilePath: '${{ parameters.dockerFilePath }}'
 
 - ${{ if eq(parameters.modifyHelmfile, true) }}:
   - stage: updateHelmConfig
