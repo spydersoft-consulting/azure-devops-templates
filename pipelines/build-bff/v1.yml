@@ -83,12 +83,27 @@ stages:
       name: Default
       demands: agent.os -equals Linux
     steps:
-    - template: ../../step_collections/yarn-build-test.yml
+    - checkout: self
+      fetchDepth: 0
+      clean: true
+    - task: UseDotNet@2
+      displayName: 'Use .NET Core sdk'
+      inputs:
+        packageType: sdk
+        version: ${{ parameters.netCoreVersion }}
+    - task: gitversion/setup@0
+      displayName: Setup GitVersion on Agent
+      inputs:
+        versionSpec: '5.x'
+    - task: gitversion/execute@0
+      displayName: Execute GitVersion to update build number
+      
+    - template: ../../step_collections/yarn-build-test/v1.yml
       parameters:
         nodeVersion: "21.4.0"
         zipBuildArtifacts: false
         workingDir: ${{ parameters.ui_source_directory }}
-    - template: ../../step_collections/dotnet-api-build-steps.yml
+    - template: ../../step_collections/dotnet-api-build-steps/v1.yml
       parameters:
         buildProject: ${{ parameters.buildProject }}
         publishProject: ${{ parameters.publishProject }}

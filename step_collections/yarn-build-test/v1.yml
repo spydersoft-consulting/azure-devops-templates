@@ -1,0 +1,90 @@
+parameters:
+- name: 'artifactName'
+  default: ''
+  type: string
+- name: 'runTests'
+  default: true
+  type: boolean
+- name: 'unitTestFile'
+  default: 'output/test/junit.xml'
+  type: string
+- name: 'codeCoverageFile'
+  default: 'output/coverage/cobertura-coverage.xml'
+  type: string
+- name: 'workingDir'
+  default: '$(Build.SourcesDirectory)'
+  type: string
+- name: 'zipBuildArtifacts'
+  type: boolean
+  default: true
+- name: preBuildSteps
+  default: []
+  type: stepList
+- name: postBuildSteps
+  default: []
+  type: stepList
+- name: additionalSteps
+  default: []
+  type: stepList
+- name: 'nodeVersion'
+  type: string
+  default: ''
+- name: useYarn2
+  type: boolean
+  default: false
+
+steps:
+- ${{ parameters.preBuildSteps }}
+
+- task: NodeTool@0
+  displayName: Set Node Version Explicitly
+  condition: ne('${{ parameters.nodeVersion }}', '')
+  inputs:
+    versionSource: 'spec'
+    versionSpec: '${{ parameters.nodeVersion }}' # 16.19.0, 18.14.1, etc
+
+- pwsh: |
+    cd ${{ parameters.workingDir }}
+    yarn install
+  displayName: Yarn install
+
+- ${{ if eq(parameters.useYarn2, true) }}:
+  - pwsh: |
+      cd ${{ parameters.workingDir }}
+      $packageJson = Get-Content -Raw -Path package.json | ConvertFrom-Json
+      $packageJson.version = "$(fullSemVer)"
+      $packageJson | ConvertTo-Json -Depth 100 | Set-Content -Path package.json
+    displayName: Set Version (Yarn 2)
+- ${{ if eq(parameters.useYarn2, false) }}:
+  - pwsh: |
+      cd ${{ parameters.workingDir }}
+      yarn version --new-version "$(fullSemVer)" --no-git-tag-version
+    displayName: Set Version
+
+- ${{ if eq(parameters.runTests, true) }}:
+  - pwsh: |
+      cd ${{ parameters.workingDir }}
+      yarn test-ci
+    displayName: Run CI Unit Tests (test-ci)
+  
+  - task: PublishTestResults@2
+    displayName: Publish Test Results
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '${{ parameters.unitTestFile }}'
+      failTaskOnFailedTests: true
+
+  - task: PublishCodeCoverageResults@1
+    displayName: Publish Code Coverage Results
+    inputs:
+      codeCoverageTool: 'cobertura'
+      summaryFileLocation: '${{ parameters.codeCoverageFile }}'
+
+- pwsh: |
+    cd ${{ parameters.workingDir }}
+    yarn build
+  displayName: Build 
+
+- ${{ parameters.postBuildSteps }}
+
+- ${{ parameters.additionalSteps }}
