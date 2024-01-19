@@ -32,7 +32,7 @@ steps:
     cwd: $(System.DefaultWorkingDirectory)/${{ parameters.helmfileDirectory }}
 - ${{ parameters.pre_generate_steps }}
 - script: |
-    curl -L https://github.com/helmfile/helmfile/releases/download/v0.154.0/helmfile_0.154.0_linux_amd64.tar.gz > $(Agent.TempDirectory)/helmfile.tar.gz
+    curl -L https://github.com/helmfile/helmfile/releases/download/v0.160.0/helmfile_0.160.0_linux_amd64.tar.gz > $(Agent.TempDirectory)/helmfile.tar.gz
     tar -xvf $(Agent.TempDirectory)/helmfile.tar.gz -C $(Agent.TempDirectory)
     chmod +x $(Agent.TempDirectory)/helmfile
   displayName: ${{ parameters.displayPrefix }} - Install Helmfile
