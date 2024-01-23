@@ -43,7 +43,7 @@ steps:
 - script: |
     cd ${{ parameters.helmfileDirectory }}
     rm -Rf $(Build.ArtifactStagingDirectory)/output/${{ parameters.environmentName }}
-    $(Agent.TempDirectory)/helmfile -n ${{ parameters.namespace }} --environment ${{ parameters.environmentName }} template --output-dir-template "$(Build.ArtifactStagingDirectory)/output/${{ parameters.environmentName }}"
+    $(Agent.TempDirectory)/helmfile --environment ${{ parameters.environmentName }} template --output-dir-template "$(Build.ArtifactStagingDirectory)/output/{{ .Release.Namespace }}"
   displayName: ${{ parameters.displayPrefix }} - Generate Output Environments
 - task: PublishPipelineArtifact@1
   inputs:
