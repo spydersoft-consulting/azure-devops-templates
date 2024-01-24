@@ -68,7 +68,7 @@ parameters:
     type: string
     default: $(Build.SourcesDirectory)/Dockerfile.simple
 
-  - name: modifyHelmfile
+  - name: updateHelmConfig
     type: boolean
     default: false
 
@@ -140,7 +140,7 @@ stages:
       dockerImageFileName: ${{ parameters.dockerImageFileName }}
       dockerFilePath: '${{ parameters.dockerFilePath }}'
 
-- ${{ if eq(parameters.modifyHelmfile, true) }}:
+- ${{ if eq(parameters.updateHelmConfig, true) }}:
   - stage: updateHelmConfig
     displayName: Update Helm Config Repository
     dependsOn:
