@@ -1,9 +1,25 @@
 parameters:
-# BFF API Parameters
+# BFF API Build Parameters
   - name: publishProject
     type: string
   - name: buildProject
     type: string
+  - name: netCoreVersion
+    type: string
+    default: '6.0.x'
+  - name: buildConfiguration
+    type: string
+    default: Release
+
+# BFF API Test Settings
+  - name: bff_execute_tests
+    type: boolean
+    default: false
+  - name: bff_test_projects
+    type: string
+    default: "**/*tests/*.csproj"
+
+# BFF API Sonarqube Settings
   - name: bff_execute_sonar
     type: boolean
     default: false
@@ -14,66 +30,59 @@ parameters:
   - name: bff_sonar_project_name
     type: string
     default: ""
-  - name: bff_execute_tests
-    type: boolean
-    default: false
   - name: bff_use_sonarcloud
     type: boolean
     default: false
   - name: bff_sonar_cloud_organization
     type: string
     default: ""
-  - name: bff_test_projects
-    type: string
-    default: "**/*tests/*.csproj"
+
 
 # UI Build
   - name: ui_source_directory
     type: string
     default: "src/ui"
 
+# Build Artifact Settings
   - name: artifactName
     type: string
+
+# Docker Settings
+  - name: buildAndPublishDockerImage
+    type: boolean
+    default: false
   - name: artifactZipName
     type: string
-
   - name: dockerImageFileName
     type: string
   - name: dockerImageName
     type: string
   - name: imageTagVariableName
-    type: string
-  - name: helmfileRepoName
-    type: string
-  
-  - name: netCoreVersion
-    type: string
-    default: '6.0.x'
+    type: string 
   - name: containerRegistryName
     type: string
     default: proget_docker
   - name: containerRegistryUrl
     type: string
     default: proget.mattgerega.com
-  - name: buildConfiguration
+  - name: dockerFilePath
     type: string
-    default: Release
+    default: $(Build.SourcesDirectory)/Dockerfile.simple
+  
+# Helmfile Config Settings
+  - name: updateHelmConfig
+    type: boolean
+    default: false
+  - name: helmfileRepoName
+    type: string
+  
+# Hooks
   - name: prebuildSteps
     type: stepList
     default: []
   - name: preTestSteps
     type: stepList
     default: []
-  - name: dockerFilePath
-    type: string
-    default: $(Build.SourcesDirectory)/Dockerfile.simple
-
-  - name: updateHelmConfig
-    type: boolean
-    default: false
-  - name: buildAndPublishDockerImage
-    type: boolean
-    default: false
 
 variables:
   - name: DOCKER_BUILDKIT

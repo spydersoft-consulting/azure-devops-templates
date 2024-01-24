@@ -1,48 +1,25 @@
 parameters:
+# API Build Parameters
   - name: publishProject
     type: string
   - name: buildProject
     type: string
-  - name: artifactName
-    type: string
-  - name: artifactZipName
-    type: string
-  - name: dockerImageFileName
-    type: string
-  - name: dockerImageName
-    type: string
-  - name: dockerFilePath
-    type: string
-    default: Dockerfile
-  - name: imageTagVariableName
-    type: string
-  - name: helmfileRepoName
-    type: string
-  - name: updateHelmConfig
-    type: boolean
-    default: false
-  - name: buildAndPublishDockerImage
-    type: boolean
-    default: false
-
   - name: netCoreVersion
     type: string
     default: '6.0.x'
-  - name: containerRegistryName
-    type: string
-    default: proget_docker
-  - name: containerRegistryUrl
-    type: string
-    default: proget.mattgerega.com
   - name: buildConfiguration
     type: string
     default: Release
-  - name: prebuildSteps
-    type: stepList
-    default: []
-  - name: preTestSteps
-    type: stepList
-    default: []
+
+# API Test Settings
+  - name: execute_tests
+    type: boolean
+    default: false
+  - name: test_projects
+    type: string
+    default: "**/*tests/*.csproj"
+
+# API Sonarqube Settings
   - name: execute_sonar
     type: boolean
     default: false
@@ -55,19 +32,53 @@ parameters:
   - name: sonar_project_name
     type: string
     default: ""
-  - name: execute_tests
-    type: boolean
-    default: false
   - name: use_sonarcloud
     type: boolean
     default: false
   - name: sonar_cloud_organization
     type: string
     default: ""
-  - name: test_projects
-    type: string
-    default: "**/*tests/*.csproj"
 
+# Build Artifact Settings
+  - name: artifactName
+    type: string
+
+# Docker Settings
+  - name: buildAndPublishDockerImage
+    type: boolean
+    default: false
+  - name: artifactZipName
+    type: string
+  - name: dockerImageFileName
+    type: string
+  - name: dockerImageName
+    type: string
+  - name: imageTagVariableName
+    type: string
+  - name: containerRegistryName
+    type: string
+    default: proget_docker
+  - name: containerRegistryUrl
+    type: string
+    default: proget.mattgerega.com
+  - name: dockerFilePath
+    type: string
+    default: Dockerfile
+
+# Helmfile Config Settings
+  - name: updateHelmConfig
+    type: boolean
+    default: false
+  - name: helmfileRepoName
+    type: string
+
+# Hooks
+  - name: prebuildSteps
+    type: stepList
+    default: []
+  - name: preTestSteps
+    type: stepList
+    default: []
 
 variables:
   - name: DOCKER_BUILDKIT
