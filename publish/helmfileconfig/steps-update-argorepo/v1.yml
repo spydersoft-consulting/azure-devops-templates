@@ -35,7 +35,7 @@ steps:
       }
     }
 
-    Copy-Item $(Pipeline.Workspace)/${{ parameters.artifactName }}/* $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }} -Recurse -Force
+    Copy-Item $(Pipeline.Workspace)/${{ parameters.artifactName }}/* $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/ -Recurse -Force
     git add --all
     git commit -m "${{ parameters.commitMessage }}"
     git push origin main
