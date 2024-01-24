@@ -27,8 +27,8 @@ steps:
     cd $(Build.SourcesDirectory)
     git checkout main
     git pull --rebase
-    rm -Rf $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }}
-    mkdir -p $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/${{ parameters.artifactName }}
+    rm -Rf $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}
+    mkdir -p $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}
 
     cp $(Pipeline.Workspace)/${{ parameters.artifactName }} $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }} -Rf
     git add --all
