@@ -30,7 +30,7 @@ steps:
     rm -Rf $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}
     mkdir -p $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}
 
-    cp $(Pipeline.Workspace)/${{ parameters.artifactName }} $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }} -Rf
+    cp $(Pipeline.Workspace)/${{ parameters.artifactName }}/* $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }} -Rf
     git add --all
     git commit -m "${{ parameters.commitMessage }}"
     git push origin main
