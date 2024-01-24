@@ -28,7 +28,7 @@ steps:
     git checkout main
     git pull --rebase
 
-    $folders = Get-ChildItem -Path $(Pipeline.Workspace)/${{ parameters.artifactName }} -Directory
+    $folders = Get-ChildItem -Path $(Pipeline.Workspace)/${{ parameters.artifactName }}/ -Directory
     foreach ($folder in $folders) {
       Remove-Item $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/$($folder.FullName) -Recurse -Force
     }
