@@ -21,6 +21,9 @@ parameters:
   - name: updateHelmConfig
     type: boolean
     default: false
+  - name: buildAndPublishDockerImage
+    type: boolean
+    default: false
 
   - name: netCoreVersion
     type: string
@@ -64,6 +67,8 @@ parameters:
   - name: test_projects
     type: string
     default: "**/*tests/*.csproj"
+
+
 variables:
   - name: DOCKER_BUILDKIT
     value: 1
@@ -98,18 +103,19 @@ stages:
     - publish: '$(Build.ArtifactStagingDirectory)' 
       artifact: '${{ parameters.artifactName }}'
 
-- stage: docker_publish
-  displayName: Create Docker Image
-  jobs:
-  - template: ../../jobs/docker-image-job.yml
-    parameters:
-      dockerImageName: ${{ parameters.dockerImageName}}
-      containerRegistryName: ${{ parameters.containerRegistryName }}
-      containerRegistryUrl: ${{ parameters.containerRegistryUrl }}
-      artifactName: '${{ parameters.artifactName }}'
-      artifactZipName: ${{ parameters.artifactZipName }}
-      dockerImageFileName: ${{ parameters.dockerImageFileName }}
-      dockerFilePath: ${{ parameters.dockerFilePath }}
+- ${{ if eq(parameters.buildAndPublishDockerImage, true) }}:
+  - stage: docker_publish
+    displayName: Create Docker Image
+    jobs:
+    - template: ../../jobs/docker-image-job.yml
+      parameters:
+        dockerImageName: ${{ parameters.dockerImageName}}
+        containerRegistryName: ${{ parameters.containerRegistryName }}
+        containerRegistryUrl: ${{ parameters.containerRegistryUrl }}
+        artifactName: '${{ parameters.artifactName }}'
+        artifactZipName: ${{ parameters.artifactZipName }}
+        dockerImageFileName: ${{ parameters.dockerImageFileName }}
+        dockerFilePath: ${{ parameters.dockerFilePath }}
 
 - ${{ if eq(parameters.updateHelmConfig, true) }}:
   - stage: updateHelmConfig
