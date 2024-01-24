@@ -30,7 +30,7 @@ steps:
 
     $folders = Get-ChildItem -Path $(Pipeline.Workspace)/${{ parameters.artifactName }}/ -Directory
     foreach ($folder in $folders) {
-      Remove-Item $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/$($folder.FullName) -Recurse -Force
+      Remove-Item $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/$($folder.Name) -Recurse -Force
     }
 
     cp $(Pipeline.Workspace)/${{ parameters.artifactName }}/* $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }} -Rf
