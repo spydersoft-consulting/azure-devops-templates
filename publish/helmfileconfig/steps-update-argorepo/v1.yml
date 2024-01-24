@@ -21,14 +21,17 @@ steps:
     source: 'current' # Options: current, specific
     artifact: ${{ parameters.artifactName }}
     path: '$(Pipeline.Workspace)/${{ parameters.artifactName }}'
-- script: |
+- pwsh: |
     git config --global user.email "gerega@gmail.com"
     git config --global user.name "CI/CD User"
     cd $(Build.SourcesDirectory)
     git checkout main
     git pull --rebase
-    rm -Rf $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}
-    mkdir -p $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}
+
+    $folders = Get-ChildItem -Path $(Pipeline.Workspace)/${{ parameters.artifactName }} -Directory
+    foreach ($folder in $folders) {
+      Remove-Item $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/$($folder.FullName) -Recurse -Force
+    }
 
     cp $(Pipeline.Workspace)/${{ parameters.artifactName }}/* $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }} -Rf
     git add --all
