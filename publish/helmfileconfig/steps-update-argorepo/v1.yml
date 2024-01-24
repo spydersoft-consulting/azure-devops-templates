@@ -30,12 +30,12 @@ steps:
 
     $folders = Get-ChildItem -Path $(Pipeline.Workspace)/${{ parameters.artifactName }}/ -Directory
     foreach ($folder in $folders) {
-      if (Test-Path $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/$($folder.Name)) {
-        Remove-Item $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/$($folder.Name) -Recurse -Force
+      if (Test-Path "$(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/$($folder.Name)") {
+        Remove-Item "$(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/$($folder.Name)" -Recurse -Force
       }
     }
 
-    cp $(Pipeline.Workspace)/${{ parameters.artifactName }}/* $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }} -Rf
+    Copy-Item $(Pipeline.Workspace)/${{ parameters.artifactName }}/* $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }} -Recurse -Force
     git add --all
     git commit -m "${{ parameters.commitMessage }}"
     git push origin main
