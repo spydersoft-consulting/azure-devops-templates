@@ -138,7 +138,7 @@ steps:
     # Setup JAVA for sonar
     - task: JavaToolInstaller@0
       inputs:
-        versionSpec: "17.0.9+9" # string. Required. JDK version. Default: 8.
+        versionSpec: '17' # string. Required. JDK version. Default: 8.
         jdkArchitectureOption: "X64" # 'x' | 'x86'. Required. JDK architecture. 
         jdkSourceOption: "PreInstalled"
 
