@@ -135,10 +135,13 @@ steps:
 
   - ${{ if eq(parameters.execute_sonar, true) }}:
 
-    - script: |
-        export JAVA_HOME=$JAVA_HOME_17_X64
-      displayName: Set JAVA_HOME
-      
+    # Setup JAVA for sonar
+    - task: JavaToolInstaller@0
+      inputs:
+        versionSpec: "17.0.9+9" # string. Required. JDK version. Default: 8.
+        jdkArchitectureOption: "X64" # 'x' | 'x86'. Required. JDK architecture. 
+        jdkSourceOption: "PreInstalled"
+
     - ${{ if eq(parameters.use_sonarcloud, true) }}:
       # Run Code Analysis task
       - task: SonarCloudAnalyze@1
