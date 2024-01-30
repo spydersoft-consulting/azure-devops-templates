@@ -52,6 +52,9 @@ parameters:
   - name: ui_use_sonarcloud
     type: boolean
     default: false
+  - name: ui_sonar_cloud_organization
+    type: string
+    default: ""
 
 # Build Artifact Settings
   - name: artifactName
@@ -132,6 +135,7 @@ stages:
         execute_sonar: ${{ parameters.ui_execute_sonar }}
         sonar_endpoint_name: ${{ parameters.ui_sonar_endpoint_name }}
         use_sonarcloud: ${{ parameters.ui_use_sonarcloud }}
+        sonar_cloud_organization: ${{ parameters.ui_sonar_cloud_organization }}
 
     - template: ../../step_collections/dotnet-api-build-steps/v1.yml
       parameters:
@@ -149,6 +153,7 @@ stages:
         test_projects: ${{ parameters.bff_test_projects }}
         use_sonarcloud: ${{ parameters.bff_use_sonarcloud }}
         sonar_cloud_organization: ${{ parameters.bff_sonar_cloud_organization }}
+
     # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
     - publish: '$(Build.ArtifactStagingDirectory)' 
       artifact: '${{ parameters.artifactName }}'

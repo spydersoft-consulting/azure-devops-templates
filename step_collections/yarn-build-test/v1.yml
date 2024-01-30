@@ -42,6 +42,9 @@ parameters:
 - name: use_sonarcloud
   type: boolean
   default: false
+- name: sonar_cloud_organization
+  type: string
+  default: ''
 
 steps:
 - ${{ parameters.preBuildSteps }}
@@ -59,6 +62,7 @@ steps:
       - task: SonarCloudPrepare@1
         inputs:
           SonarCloud: ${{ parameters.sonar_endpoint_name }}
+          organization: ${{ parameters.sonar_cloud_organization }}
           scannerMode: 'CLI'
           configMode: 'file'
     - ${{ else }}:
