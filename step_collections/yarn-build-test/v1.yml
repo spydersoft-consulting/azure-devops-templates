@@ -45,9 +45,11 @@ parameters:
 - name: sonar_cloud_organization
   type: string
   default: ''
-- name: sonar_config_file
+- name: sonar_project_key
   type: string
-  default: 'sonar-project.properties'
+- name: sonar_sources
+  type: string
+  default: 'ui/src'
 
 steps:
 - ${{ parameters.preBuildSteps }}
@@ -67,16 +69,18 @@ steps:
           SonarCloud: ${{ parameters.sonar_endpoint_name }}
           organization: ${{ parameters.sonar_cloud_organization }}
           scannerMode: 'CLI'
-          configMode: 'file'
-          configFile: ${{ parameters.sonar_config_file }}
+          configMode: 'manual'
+          cliProjectKey: ${{ parameters.sonar_project_key }}
+          cliSources: ${{ parameters.sonar_sources }}
     - ${{ else }}:
       # Prepare Analysis Configuration task
       - task: SonarQubePrepare@5
         inputs:
           SonarQube: ${{ parameters.sonar_endpoint_name }}
           scannerMode: 'CLI'
-          configMode: 'file'
-          configFile: ${{ parameters.sonar_config_file }}       
+          configMode: 'manual'
+          cliProjectKey: ${{ parameters.sonar_project_key }}
+          cliSources: ${{ parameters.sonar_sources }}   
 
 
 - pwsh: |

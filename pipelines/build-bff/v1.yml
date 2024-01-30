@@ -55,9 +55,11 @@ parameters:
   - name: ui_sonar_cloud_organization
     type: string
     default: ""
-  - name: ui_sonar_config_file
+  - name: ui_sonar_project_key
     type: string
-    default: "sonar-project.properties"
+  - name: ui_sonar_sources
+    type: string
+    default: "src/ui"
 
 # Build Artifact Settings
   - name: artifactName
@@ -139,6 +141,8 @@ stages:
         sonar_endpoint_name: ${{ parameters.ui_sonar_endpoint_name }}
         use_sonarcloud: ${{ parameters.ui_use_sonarcloud }}
         sonar_cloud_organization: ${{ parameters.ui_sonar_cloud_organization }}
+        sonar_project_key: ${{ parameters.ui_sonar_project_key }}
+        sonar_sources: ${{ parameters.ui_sonar_sources }}
 
     - template: ../../step_collections/dotnet-api-build-steps/v1.yml
       parameters:
