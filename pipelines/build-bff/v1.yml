@@ -43,6 +43,16 @@ parameters:
     type: string
     default: "src/ui"
 
+# UI Sonarqube Settings
+  - name: ui_execute_sonar
+    type: boolean
+    default: false
+  - name: ui_sonar_endpoint_name
+    type: string
+  - name: ui_use_sonarcloud
+    type: boolean
+    default: false
+
 # Build Artifact Settings
   - name: artifactName
     type: string
@@ -119,6 +129,10 @@ stages:
         zipBuildArtifacts: false
         workingDir: ${{ parameters.ui_source_directory }}
         useYarn2: true
+        execute_sonar: ${{ parameters.ui_execute_sonar }}
+        sonar_endpoint_name: ${{ parameters.ui_sonar_endpoint_name }}
+        use_sonarcloud: ${{ parameters.ui_use_sonarcloud }}
+
     - template: ../../step_collections/dotnet-api-build-steps/v1.yml
       parameters:
         buildProject: ${{ parameters.buildProject }}
