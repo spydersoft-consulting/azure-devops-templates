@@ -44,6 +44,9 @@ parameters:
   - name: ui_code_coverage_file
     type: string
     default: "output/coverage/cobertura-coverage.xml"
+  - name: ui_unit_test_file
+    type: string
+    default": "output/test/junit.xml"
 
   # UI Sonarqube Settings
   - name: ui_execute_sonar
@@ -60,6 +63,7 @@ parameters:
   - name: ui_sonar_config_file
     type: string
     default: "sonar-project.properties"
+  - name: ui_uni
 
   # Build Artifact Settings
   - name: artifactName
@@ -143,7 +147,8 @@ stages:
               sonar_cloud_organization: ${{ parameters.ui_sonar_cloud_organization }}
               sonar_config_file: ${{ parameters.ui_sonar_config_file }}
               codeCoverageFile: ${{ parameters.ui_code_coverage_file }}
-              
+              unitTestFile: ${{ parameters.ui_unit_test_file }}
+
           - template: ../../step_collections/dotnet-api-build-steps/v1.yml
             parameters:
               buildProject: ${{ parameters.buildProject }}
