@@ -110,10 +110,10 @@ steps:
   - ${{ if eq(parameters.execute_sonar, true) }}:
     - ${{ if eq(parameters.use_sonarcloud, true) }}:
       # Run Code Analysis task
-      - task: SonarCloudAnalyze@5
+      - task: SonarCloudAnalyze@1
 
       # Publish Quality Gate Result task
-      - task: SonarCloudPublish@5
+      - task: SonarCloudPublish@1
         inputs:
           pollingTimeoutSec: '300'
     - ${{ else }}:
