@@ -55,11 +55,14 @@ parameters:
   - name: ui_sonar_cloud_organization
     type: string
     default: ""
-  - name: ui_sonar_project_key
+  - name: sonar_config_file
     type: string
-  - name: ui_sonar_sources
-    type: string
-    default: "src/ui"
+    default: "sonar-project.properties"
+  # - name: ui_sonar_project_key
+  #   type: string
+  # - name: ui_sonar_sources
+  #   type: string
+  #   default: "src/ui"
 
 # Build Artifact Settings
   - name: artifactName
