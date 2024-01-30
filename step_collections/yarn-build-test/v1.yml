@@ -33,6 +33,16 @@ parameters:
   type: boolean
   default: false
 
+- name: execute_sonar
+  type: boolean
+  default: false
+- name: sonar_endpoint_name
+  type: string
+  default: ""
+- name: use_sonarcloud
+  type: boolean
+  default: false
+
 steps:
 - ${{ parameters.preBuildSteps }}
 
@@ -42,6 +52,23 @@ steps:
   inputs:
     versionSource: 'spec'
     versionSpec: '${{ parameters.nodeVersion }}' # 16.19.0, 18.14.1, etc
+
+- ${{ if eq(parameters.execute_sonar, true) }}:
+    - ${{ if eq(parameters.use_sonarcloud, true) }}:
+      # Prepare Analysis Configuration task
+      - task: SonarCloudPrepare@1
+        inputs:
+          SonarCloud: ${{ parameters.sonar_endpoint_name }}
+          scannerMode: 'CLI'
+          configMode: 'file'
+    - ${{ else }}:
+      # Prepare Analysis Configuration task
+      - task: SonarQubePrepare@5
+        inputs:
+          SonarQube: ${{ parameters.sonar_endpoint_name }}
+          scannerMode: 'CLI'
+          configMode: 'file'       
+
 
 - pwsh: |
     cd ${{ parameters.workingDir }}
@@ -79,6 +106,24 @@ steps:
     inputs:
       codeCoverageTool: 'cobertura'
       summaryFileLocation: '${{ parameters.codeCoverageFile }}'
+
+  - ${{ if eq(parameters.execute_sonar, true) }}:
+    - ${{ if eq(parameters.use_sonarcloud, true) }}:
+      # Run Code Analysis task
+      - task: SonarCloudAnalyze@5
+
+      # Publish Quality Gate Result task
+      - task: SonarCloudPublish@5
+        inputs:
+          pollingTimeoutSec: '300'
+    - ${{ else }}:
+      # Run Code Analysis task
+      - task: SonarQubeAnalyze@5
+
+      # Publish Quality Gate Result task
+      - task: SonarQubePublish@5
+        inputs:
+          pollingTimeoutSec: '300'
 
 - pwsh: |
     cd ${{ parameters.workingDir }}
