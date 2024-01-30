@@ -1,17 +1,17 @@
 parameters:
-# BFF API Build Parameters
+  # BFF API Build Parameters
   - name: publishProject
     type: string
   - name: buildProject
     type: string
   - name: netCoreVersion
     type: string
-    default: '6.0.x'
+    default: "6.0.x"
   - name: buildConfiguration
     type: string
     default: Release
 
-# BFF API Test Settings
+  # BFF API Test Settings
   - name: bff_execute_tests
     type: boolean
     default: false
@@ -19,7 +19,7 @@ parameters:
     type: string
     default: "**/*tests/*.csproj"
 
-# BFF API Sonarqube Settings
+  # BFF API Sonarqube Settings
   - name: bff_execute_sonar
     type: boolean
     default: false
@@ -37,13 +37,12 @@ parameters:
     type: string
     default: ""
 
-
-# UI Build
+  # UI Build
   - name: ui_source_directory
     type: string
     default: "src/ui"
 
-# UI Sonarqube Settings
+  # UI Sonarqube Settings
   - name: ui_execute_sonar
     type: boolean
     default: false
@@ -58,17 +57,12 @@ parameters:
   - name: ui_sonar_config_file
     type: string
     default: "sonar-project.properties"
-  # - name: ui_sonar_project_key
-  #   type: string
-  # - name: ui_sonar_sources
-  #   type: string
-  #   default: "src/ui"
 
-# Build Artifact Settings
+  # Build Artifact Settings
   - name: artifactName
     type: string
 
-# Docker Settings
+  # Docker Settings
   - name: buildAndPublishDockerImage
     type: boolean
     default: false
@@ -79,7 +73,7 @@ parameters:
   - name: dockerImageName
     type: string
   - name: imageTagVariableName
-    type: string 
+    type: string
   - name: containerRegistryName
     type: string
     default: proget_docker
@@ -89,15 +83,15 @@ parameters:
   - name: dockerFilePath
     type: string
     default: $(Build.SourcesDirectory)/Dockerfile.simple
-  
-# Helmfile Config Settings
+
+  # Helmfile Config Settings
   - name: updateHelmConfig
     type: boolean
     default: false
   - name: helmfileRepoName
     type: string
-  
-# Hooks
+
+  # Hooks
   - name: prebuildSteps
     type: stepList
     default: []
@@ -110,94 +104,92 @@ variables:
     value: 1
 
 stages:
-- stage: Build
-  jobs:
-  - job: BuildJob
-    workspace:
-      clean: all
-    pool:
-      name: Default
-      demands: agent.os -equals Linux
-    steps:
-    - checkout: self
-      fetchDepth: 0
-      clean: true
-    - task: UseDotNet@2
-      displayName: 'Use .NET Core sdk'
-      inputs:
-        packageType: sdk
-        version: ${{ parameters.netCoreVersion }}
-    - task: gitversion/setup@0
-      displayName: Setup GitVersion on Agent
-      inputs:
-        versionSpec: '5.x'
-    - task: gitversion/execute@0
-      displayName: Execute GitVersion to update build number
-
-    - template: ../../step_collections/yarn-build-test/v1.yml
-      parameters:
-        nodeVersion: "21.4.0"
-        zipBuildArtifacts: false
-        workingDir: ${{ parameters.ui_source_directory }}
-        useYarn2: true
-        execute_sonar: ${{ parameters.ui_execute_sonar }}
-        sonar_endpoint_name: ${{ parameters.ui_sonar_endpoint_name }}
-        use_sonarcloud: ${{ parameters.ui_use_sonarcloud }}
-        sonar_cloud_organization: ${{ parameters.ui_sonar_cloud_organization }}
-        sonar_config_file: ${{ parameters.ui_sonar_config_file }}
-        # sonar_project_key: ${{ parameters.ui_sonar_project_key }}
-        # sonar_sources: ${{ parameters.ui_sonar_sources }}
-
-    - template: ../../step_collections/dotnet-api-build-steps/v1.yml
-      parameters:
-        buildProject: ${{ parameters.buildProject }}
-        publishProject: ${{ parameters.publishProject }}
-        netCoreVersion: ${{ parameters.netCoreVersion }}
-        BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }}
-        prebuildSteps: ${{ parameters.prebuildSteps }}
-        preTestSteps: ${{ parameters.preTestSteps }}
-        execute_sonar: ${{ parameters.bff_execute_sonar }}
-        sonar_endpoint_name: ${{ parameters.bff_sonar_endpoint_name }}
-        sonar_project_key: ${{ parameters.bff_sonar_project_key }}
-        sonar_project_name: ${{ parameters.bff_sonar_project_name }}
-        execute_tests: ${{ parameters.bff_execute_tests }}
-        test_projects: ${{ parameters.bff_test_projects }}
-        use_sonarcloud: ${{ parameters.bff_use_sonarcloud }}
-        sonar_cloud_organization: ${{ parameters.bff_sonar_cloud_organization }}
-
-    # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
-    - publish: '$(Build.ArtifactStagingDirectory)' 
-      artifact: '${{ parameters.artifactName }}'
-
-- ${{ if eq(parameters.buildAndPublishDockerImage, true) }}:
-  - stage: docker_publish
-    displayName: Create Docker Image
+  - stage: Build
     jobs:
-    - template: ../../jobs/docker-image-job.yml
-      parameters:
-        dockerImageName: ${{ parameters.dockerImageName}}
-        containerRegistryName: ${{ parameters.containerRegistryName }}
-        containerRegistryUrl: ${{ parameters.containerRegistryUrl }}
-        artifactName: '${{ parameters.artifactName }}'
-        artifactZipName: ${{ parameters.artifactZipName }}
-        dockerImageFileName: ${{ parameters.dockerImageFileName }}
-        dockerFilePath: '${{ parameters.dockerFilePath }}'
+      - job: BuildJob
+        workspace:
+          clean: all
+        pool:
+          name: Default
+          demands: agent.os -equals Linux
+        steps:
+          - checkout: self
+            fetchDepth: 0
+            clean: true
+          - task: UseDotNet@2
+            displayName: "Use .NET Core sdk"
+            inputs:
+              packageType: sdk
+              version: ${{ parameters.netCoreVersion }}
+          - task: gitversion/setup@0
+            displayName: Setup GitVersion on Agent
+            inputs:
+              versionSpec: "5.x"
+          - task: gitversion/execute@0
+            displayName: Execute GitVersion to update build number
 
-- ${{ if eq(parameters.updateHelmConfig, true) }}:
-  - stage: updateHelmConfig
-    displayName: Update Helm Config Repository
-    dependsOn:
-    - docker_publish
-    jobs:
-    - job: updateHelmConfigJob
-      pool:
-        name: Default
-      workspace:
-        clean: all
-      steps:
-      - template: ../../publish/helmfileconfig/steps-process-cicd/v1.yml
-        parameters:
-          repositoryResource: ${{ parameters.helmfileRepoName }}
-          branchName: $(Build.SourceBranch)
-          tagsCollection: ${{ parameters.imageTagVariableName }}=$(build.buildnumber)
-          commitMessage: Updated ${{ parameters.imageTagVariableName }} to $(build.buildnumber)
+          - template: ../../step_collections/yarn-build-test/v1.yml
+            parameters:
+              nodeVersion: "21.4.0"
+              zipBuildArtifacts: false
+              workingDir: ${{ parameters.ui_source_directory }}
+              useYarn2: true
+              execute_sonar: ${{ parameters.ui_execute_sonar }}
+              sonar_endpoint_name: ${{ parameters.ui_sonar_endpoint_name }}
+              use_sonarcloud: ${{ parameters.ui_use_sonarcloud }}
+              sonar_cloud_organization: ${{ parameters.ui_sonar_cloud_organization }}
+              sonar_config_file: ${{ parameters.ui_sonar_config_file }}
+
+          - template: ../../step_collections/dotnet-api-build-steps/v1.yml
+            parameters:
+              buildProject: ${{ parameters.buildProject }}
+              publishProject: ${{ parameters.publishProject }}
+              netCoreVersion: ${{ parameters.netCoreVersion }}
+              BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }}
+              prebuildSteps: ${{ parameters.prebuildSteps }}
+              preTestSteps: ${{ parameters.preTestSteps }}
+              execute_sonar: ${{ parameters.bff_execute_sonar }}
+              sonar_endpoint_name: ${{ parameters.bff_sonar_endpoint_name }}
+              sonar_project_key: ${{ parameters.bff_sonar_project_key }}
+              sonar_project_name: ${{ parameters.bff_sonar_project_name }}
+              execute_tests: ${{ parameters.bff_execute_tests }}
+              test_projects: ${{ parameters.bff_test_projects }}
+              use_sonarcloud: ${{ parameters.bff_use_sonarcloud }}
+              sonar_cloud_organization: ${{ parameters.bff_sonar_cloud_organization }}
+
+          # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
+          - publish: "$(Build.ArtifactStagingDirectory)"
+            artifact: "${{ parameters.artifactName }}"
+
+  - ${{ if eq(parameters.buildAndPublishDockerImage, true) }}:
+      - stage: docker_publish
+        displayName: Create Docker Image
+        jobs:
+          - template: ../../jobs/docker-image-job.yml
+            parameters:
+              dockerImageName: ${{ parameters.dockerImageName}}
+              containerRegistryName: ${{ parameters.containerRegistryName }}
+              containerRegistryUrl: ${{ parameters.containerRegistryUrl }}
+              artifactName: "${{ parameters.artifactName }}"
+              artifactZipName: ${{ parameters.artifactZipName }}
+              dockerImageFileName: ${{ parameters.dockerImageFileName }}
+              dockerFilePath: "${{ parameters.dockerFilePath }}"
+
+  - ${{ if eq(parameters.updateHelmConfig, true) }}:
+      - stage: updateHelmConfig
+        displayName: Update Helm Config Repository
+        dependsOn:
+          - docker_publish
+        jobs:
+          - job: updateHelmConfigJob
+            pool:
+              name: Default
+            workspace:
+              clean: all
+            steps:
+              - template: ../../publish/helmfileconfig/steps-process-cicd/v1.yml
+                parameters:
+                  repositoryResource: ${{ parameters.helmfileRepoName }}
+                  branchName: $(Build.SourceBranch)
+                  tagsCollection: ${{ parameters.imageTagVariableName }}=$(build.buildnumber)
+                  commitMessage: Updated ${{ parameters.imageTagVariableName }} to $(build.buildnumber)

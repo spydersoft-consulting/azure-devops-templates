@@ -1,68 +1,68 @@
 parameters:
-- name: dockerImageName
-  type: string
-- name: containerRegistryName
-  type: string
-- name: containerRegistryUrl
-  type: string
-- name: artifactName
-  type: string
-- name: dockerImageFileName
-  type: string
-- name: artifactZipName
-  type: string
-- name: dockerFilePath
-  type: string
-  default: $(Build.SourcesDirectory)/Dockerfile.simple
-- name: dockerBuildBasePath
-  type: string
-  default: $(Pipeline.Workspace)/dockerFiles
-- name: artifactTargetPath
-  type: string
-  default: ''
-- name: prebuild_steps
-  type: stepList
-  default: []
+  - name: dockerImageName
+    type: string
+  - name: containerRegistryName
+    type: string
+  - name: containerRegistryUrl
+    type: string
+  - name: artifactName
+    type: string
+  - name: dockerImageFileName
+    type: string
+  - name: artifactZipName
+    type: string
+  - name: dockerFilePath
+    type: string
+    default: $(Build.SourcesDirectory)/Dockerfile.simple
+  - name: dockerBuildBasePath
+    type: string
+    default: $(Pipeline.Workspace)/dockerFiles
+  - name: artifactTargetPath
+    type: string
+    default: ""
+  - name: prebuild_steps
+    type: stepList
+    default: []
 jobs:
-- job: create_docker_image_and_publish
-  displayName: Create Docker Image and Publish
-  pool:
-    name: Default
-  steps:
-    - task: DownloadPipelineArtifact@2
-      inputs:
-        buildType: 'current'
-        artifactName: '${{ parameters.artifactName }}'
-        targetPath:  '$(Pipeline.Workspace)/${{ parameters.artifactName }}'
-    - task: ExtractFiles@1
-      displayName: Extract Build Files
-      inputs:
-        archiveFilePatterns: '$(Pipeline.Workspace)/${{ parameters.artifactName }}/${{ parameters.artifactZipName }}.zip' 
-        destinationFolder: ${{ parameters.dockerBuildBasePath }}/${{ parameters.artifactTargetPath }}
-        cleanDestinationFolder: true   
-    - task: Bash@3
-      displayName: Copy Docker file to build folder
-      inputs:
-        targetType: 'inline'
-        script: |
-          cp ${{ parameters.dockerFilePath }} ${{ parameters.dockerBuildBasePath }}/Dockerfile
-    - ${{ parameters.prebuild_steps }}
-    - task: Docker@2
-      displayName: Build Image
-      inputs:
-        command: 'build'
-        containerRegistry: ${{ parameters.containerRegistryName }}
-        repository: ${{ parameters.dockerImageName }}
-        Dockerfile: '${{ parameters.dockerBuildBasePath }}/Dockerfile'
-        buildContext: '${{ parameters.dockerBuildBasePath }}'
-        tags: |
-          $(build.buildnumber)
+  - job: create_docker_image_and_publish
+    displayName: Create Docker Image and Publish
+    pool:
+      name: Default
+    steps:
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          buildType: "current"
+          artifactName: "${{ parameters.artifactName }}"
+          targetPath: "$(Pipeline.Workspace)/${{ parameters.artifactName }}"
+      - task: ExtractFiles@1
+        displayName: Extract Build Files
+        inputs:
+          archiveFilePatterns: "$(Pipeline.Workspace)/${{ parameters.artifactName }}/${{ parameters.artifactZipName }}.zip"
+          destinationFolder: ${{ parameters.dockerBuildBasePath }}/${{ parameters.artifactTargetPath }}
+          cleanDestinationFolder: true
+      - task: Bash@3
+        displayName: Copy Docker file to build folder
+        inputs:
+          targetType: "inline"
+          script: |
+            cp ${{ parameters.dockerFilePath }} ${{ parameters.dockerBuildBasePath }}/Dockerfile
+      - ${{ parameters.prebuild_steps }}
+      - task: Docker@2
+        displayName: Build Image
+        inputs:
+          command: "build"
+          containerRegistry: ${{ parameters.containerRegistryName }}
+          repository: ${{ parameters.dockerImageName }}
+          Dockerfile: "${{ parameters.dockerBuildBasePath }}/Dockerfile"
+          buildContext: "${{ parameters.dockerBuildBasePath }}"
+          tags: |
+            $(build.buildnumber)
 
-    - task: Docker@2
-      displayName: Push to Container Registry
-      inputs:
-        containerRegistry: ${{ parameters.containerRegistryName}}
-        repository: '${{ parameters.dockerImageName}}'
-        command: 'push'
-        tags: | 
-          $(build.buildnumber)
+      - task: Docker@2
+        displayName: Push to Container Registry
+        inputs:
+          containerRegistry: ${{ parameters.containerRegistryName}}
+          repository: "${{ parameters.dockerImageName}}"
+          command: "push"
+          tags: |
+            $(build.buildnumber)

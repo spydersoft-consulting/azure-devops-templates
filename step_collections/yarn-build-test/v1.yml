@@ -1,153 +1,143 @@
 parameters:
-- name: 'artifactName'
-  default: ''
-  type: string
-- name: 'runTests'
-  default: true
-  type: boolean
-- name: 'unitTestFile'
-  default: 'output/test/junit.xml'
-  type: string
-- name: 'codeCoverageFile'
-  default: 'output/coverage/cobertura-coverage.xml'
-  type: string
-- name: 'workingDir'
-  default: '$(Build.SourcesDirectory)'
-  type: string
-- name: 'zipBuildArtifacts'
-  type: boolean
-  default: true
-- name: preBuildSteps
-  default: []
-  type: stepList
-- name: postBuildSteps
-  default: []
-  type: stepList
-- name: additionalSteps
-  default: []
-  type: stepList
-- name: 'nodeVersion'
-  type: string
-  default: ''
-- name: useYarn2
-  type: boolean
-  default: false
+  - name: "artifactName"
+    default: ""
+    type: string
+  - name: "runTests"
+    default: true
+    type: boolean
+  - name: "unitTestFile"
+    default: "output/test/junit.xml"
+    type: string
+  - name: "codeCoverageFile"
+    default: "output/coverage/cobertura-coverage.xml"
+    type: string
+  - name: "workingDir"
+    default: "$(Build.SourcesDirectory)"
+    type: string
+  - name: "zipBuildArtifacts"
+    type: boolean
+    default: true
+  - name: preBuildSteps
+    default: []
+    type: stepList
+  - name: postBuildSteps
+    default: []
+    type: stepList
+  - name: additionalSteps
+    default: []
+    type: stepList
+  - name: "nodeVersion"
+    type: string
+    default: ""
+  - name: useYarn2
+    type: boolean
+    default: false
 
-- name: execute_sonar
-  type: boolean
-  default: false
-- name: sonar_endpoint_name
-  type: string
-  default: ""
-- name: use_sonarcloud
-  type: boolean
-  default: false
-- name: sonar_cloud_organization
-  type: string
-  default: ''
-- name: sonar_config_file
-  type: string
-  default: 'sonar-project.properties'
-# - name: sonar_project_key
-#   type: string
-# - name: sonar_sources
-#   type: string
-#   default: 'ui/src'
+  - name: execute_sonar
+    type: boolean
+    default: false
+  - name: sonar_endpoint_name
+    type: string
+    default: ""
+  - name: use_sonarcloud
+    type: boolean
+    default: false
+  - name: sonar_cloud_organization
+    type: string
+    default: ""
+  - name: sonar_config_file
+    type: string
+    default: "sonar-project.properties"
 
 steps:
-- ${{ parameters.preBuildSteps }}
+  - ${{ parameters.preBuildSteps }}
 
-- task: NodeTool@0
-  displayName: Set Node Version Explicitly
-  condition: ne('${{ parameters.nodeVersion }}', '')
-  inputs:
-    versionSource: 'spec'
-    versionSpec: '${{ parameters.nodeVersion }}' # 16.19.0, 18.14.1, etc
-
-- ${{ if eq(parameters.execute_sonar, true) }}:
-    - ${{ if eq(parameters.use_sonarcloud, true) }}:
-      # Prepare Analysis Configuration task
-      - task: SonarCloudPrepare@1
-        inputs:
-          SonarCloud: ${{ parameters.sonar_endpoint_name }}
-          organization: ${{ parameters.sonar_cloud_organization }}
-          scannerMode: 'CLI'
-          configMode: 'file'
-          configFile: ${{ parameters.sonar_config_file }}
-          # cliProjectKey: ${{ parameters.sonar_project_key }}
-          # cliSources: ${{ parameters.sonar_sources }}
-    - ${{ else }}:
-      # Prepare Analysis Configuration task
-      - task: SonarQubePrepare@5
-        inputs:
-          SonarQube: ${{ parameters.sonar_endpoint_name }}
-          scannerMode: 'CLI'
-          configMode: 'file'
-          configFile: ${{ parameters.sonar_config_file }}
-          # cliProjectKey: ${{ parameters.sonar_project_key }}
-          # cliSources: ${{ parameters.sonar_sources }}   
-
-
-- pwsh: |
-    cd ${{ parameters.workingDir }}
-    yarn install
-  displayName: Yarn install
-
-- ${{ if eq(parameters.useYarn2, true) }}:
-  - pwsh: |
-      cd ${{ parameters.workingDir }}
-      $packageJson = Get-Content -Raw -Path package.json | ConvertFrom-Json
-      $packageJson.version = "$(fullSemVer)"
-      $packageJson | ConvertTo-Json -Depth 100 | Set-Content -Path package.json
-    displayName: Set Version (Yarn 2)
-- ${{ if eq(parameters.useYarn2, false) }}:
-  - pwsh: |
-      cd ${{ parameters.workingDir }}
-      yarn version --new-version "$(fullSemVer)" --no-git-tag-version
-    displayName: Set Version
-
-- ${{ if eq(parameters.runTests, true) }}:
-  - pwsh: |
-      cd ${{ parameters.workingDir }}
-      yarn test-ci
-    displayName: Run CI Unit Tests (test-ci)
-  
-  - task: PublishTestResults@2
-    displayName: Publish Test Results
+  - task: NodeTool@0
+    displayName: Set Node Version Explicitly
+    condition: ne('${{ parameters.nodeVersion }}', '')
     inputs:
-      testResultsFormat: 'JUnit'
-      testResultsFiles: '${{ parameters.unitTestFile }}'
-      failTaskOnFailedTests: true
-
-  - task: PublishCodeCoverageResults@1
-    displayName: Publish Code Coverage Results
-    inputs:
-      codeCoverageTool: 'cobertura'
-      summaryFileLocation: '${{ parameters.codeCoverageFile }}'
+      versionSource: "spec"
+      versionSpec: "${{ parameters.nodeVersion }}" # 16.19.0, 18.14.1, etc
 
   - ${{ if eq(parameters.execute_sonar, true) }}:
-    - ${{ if eq(parameters.use_sonarcloud, true) }}:
-      # Run Code Analysis task
-      - task: SonarCloudAnalyze@1
+      - ${{ if eq(parameters.use_sonarcloud, true) }}:
+          # Prepare Analysis Configuration task
+          - task: SonarCloudPrepare@1
+            inputs:
+              SonarCloud: ${{ parameters.sonar_endpoint_name }}
+              organization: ${{ parameters.sonar_cloud_organization }}
+              scannerMode: "CLI"
+              configMode: "file"
+              configFile: ${{ parameters.sonar_config_file }}
+      - ${{ else }}:
+          # Prepare Analysis Configuration task
+          - task: SonarQubePrepare@5
+            inputs:
+              SonarQube: ${{ parameters.sonar_endpoint_name }}
+              scannerMode: "CLI"
+              configMode: "file"
+              configFile: ${{ parameters.sonar_config_file }}
 
-      # Publish Quality Gate Result task
-      - task: SonarCloudPublish@1
+  - pwsh: |
+      cd ${{ parameters.workingDir }}
+      yarn install
+    displayName: Yarn install
+
+  - ${{ if eq(parameters.useYarn2, true) }}:
+      - pwsh: |
+          cd ${{ parameters.workingDir }}
+          $packageJson = Get-Content -Raw -Path package.json | ConvertFrom-Json
+          $packageJson.version = "$(fullSemVer)"
+          $packageJson | ConvertTo-Json -Depth 100 | Set-Content -Path package.json
+        displayName: Set Version (Yarn 2)
+  - ${{ if eq(parameters.useYarn2, false) }}:
+      - pwsh: |
+          cd ${{ parameters.workingDir }}
+          yarn version --new-version "$(fullSemVer)" --no-git-tag-version
+        displayName: Set Version
+
+  - ${{ if eq(parameters.runTests, true) }}:
+      - pwsh: |
+          cd ${{ parameters.workingDir }}
+          yarn test-ci
+        displayName: Run CI Unit Tests (test-ci)
+
+      - task: PublishTestResults@2
+        displayName: Publish Test Results
         inputs:
-          pollingTimeoutSec: '300'
-    - ${{ else }}:
-      # Run Code Analysis task
-      - task: SonarQubeAnalyze@5
+          testResultsFormat: "JUnit"
+          testResultsFiles: "${{ parameters.unitTestFile }}"
+          failTaskOnFailedTests: true
 
-      # Publish Quality Gate Result task
-      - task: SonarQubePublish@5
+      - task: PublishCodeCoverageResults@1
+        displayName: Publish Code Coverage Results
         inputs:
-          pollingTimeoutSec: '300'
+          codeCoverageTool: "cobertura"
+          summaryFileLocation: "${{ parameters.codeCoverageFile }}"
 
-- pwsh: |
-    cd ${{ parameters.workingDir }}
-    yarn build
-  displayName: Build 
+      - ${{ if eq(parameters.execute_sonar, true) }}:
+          - ${{ if eq(parameters.use_sonarcloud, true) }}:
+              # Run Code Analysis task
+              - task: SonarCloudAnalyze@1
 
-- ${{ parameters.postBuildSteps }}
+              # Publish Quality Gate Result task
+              - task: SonarCloudPublish@1
+                inputs:
+                  pollingTimeoutSec: "300"
+          - ${{ else }}:
+              # Run Code Analysis task
+              - task: SonarQubeAnalyze@5
 
-- ${{ parameters.additionalSteps }}
+              # Publish Quality Gate Result task
+              - task: SonarQubePublish@5
+                inputs:
+                  pollingTimeoutSec: "300"
+
+  - pwsh: |
+      cd ${{ parameters.workingDir }}
+      yarn build
+    displayName: Build
+
+  - ${{ parameters.postBuildSteps }}
+
+  - ${{ parameters.additionalSteps }}

@@ -15,11 +15,10 @@ parameters:
     type: string
   - name: helmfileRepoName
     type: string
-  
 
   - name: netCoreVersion
     type: string
-    default: '6.0.x'
+    default: "6.0.x"
   - name: containerRegistryName
     type: string
     default: proget_docker
@@ -62,61 +61,61 @@ variables:
     value: 1
 
 stages:
-- stage: Build
-  jobs:
-  - job: BuildJob
-    workspace:
-      clean: all
-    pool:
-      name: Default
-      demands: agent.os -equals Linux
-    steps:
-    - template: ../../step_collections/dotnet-api-build-steps.yml
-      parameters:
-        buildProject: ${{ parameters.buildProject }}
-        publishProject: ${{ parameters.publishProject }}
-        netCoreVersion: ${{ parameters.netCoreVersion }}
-        BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }}
-        prebuildSteps: ${{ parameters.prebuildSteps }}
-        preTestSteps: ${{ parameters.preTestSteps }}
-        execute_sonar: ${{ parameters.execute_sonar }}
-        sonar_endpoint_name: ${{ parameters.sonar_endpoint_name }}
-        sonar_project_key: ${{ parameters.sonar_project_key }}
-        sonar_project_name: ${{ parameters.sonar_project_name }}
-        execute_tests: ${{ parameters.execute_tests }}
-        test_projects: ${{ parameters.test_projects }}
-        use_sonarcloud: ${{ parameters.use_sonarcloud }}
-        sonar_cloud_organization: ${{ parameters.sonar_cloud_organization }}
-    # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
-    - publish: '$(Build.ArtifactStagingDirectory)' 
-      artifact: '${{ parameters.artifactName }}'
+  - stage: Build
+    jobs:
+      - job: BuildJob
+        workspace:
+          clean: all
+        pool:
+          name: Default
+          demands: agent.os -equals Linux
+        steps:
+          - template: ../../step_collections/dotnet-api-build-steps.yml
+            parameters:
+              buildProject: ${{ parameters.buildProject }}
+              publishProject: ${{ parameters.publishProject }}
+              netCoreVersion: ${{ parameters.netCoreVersion }}
+              BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }}
+              prebuildSteps: ${{ parameters.prebuildSteps }}
+              preTestSteps: ${{ parameters.preTestSteps }}
+              execute_sonar: ${{ parameters.execute_sonar }}
+              sonar_endpoint_name: ${{ parameters.sonar_endpoint_name }}
+              sonar_project_key: ${{ parameters.sonar_project_key }}
+              sonar_project_name: ${{ parameters.sonar_project_name }}
+              execute_tests: ${{ parameters.execute_tests }}
+              test_projects: ${{ parameters.test_projects }}
+              use_sonarcloud: ${{ parameters.use_sonarcloud }}
+              sonar_cloud_organization: ${{ parameters.sonar_cloud_organization }}
+          # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
+          - publish: "$(Build.ArtifactStagingDirectory)"
+            artifact: "${{ parameters.artifactName }}"
 
-- stage: docker_publish
-  displayName: Create Docker Image
-  jobs:
-  - template: ../../jobs/docker-image-job.yml
-    parameters:
-      dockerImageName: ${{ parameters.dockerImageName}}
-      containerRegistryName: ${{ parameters.containerRegistryName }}
-      containerRegistryUrl: ${{ parameters.containerRegistryUrl }}
-      artifactName: '${{ parameters.artifactName }}'
-      artifactZipName: ${{ parameters.artifactZipName }}
-      dockerImageFileName: ${{ parameters.dockerImageFileName }}
+  - stage: docker_publish
+    displayName: Create Docker Image
+    jobs:
+      - template: ../../jobs/docker-image-job.yml
+        parameters:
+          dockerImageName: ${{ parameters.dockerImageName}}
+          containerRegistryName: ${{ parameters.containerRegistryName }}
+          containerRegistryUrl: ${{ parameters.containerRegistryUrl }}
+          artifactName: "${{ parameters.artifactName }}"
+          artifactZipName: ${{ parameters.artifactZipName }}
+          dockerImageFileName: ${{ parameters.dockerImageFileName }}
 
-- stage: updateHelmConfig
-  displayName: Update Helm Config Repository
-  dependsOn:
-  - docker_publish
-  jobs:
-  - job: updateHelmConfigJob
-    pool:
-      name: Default
-    workspace:
-      clean: all
-    steps:
-    - template: ../../publish/helmfileconfig/steps-process-cicd/v1.yml
-      parameters:
-        repositoryResource: ${{ parameters.helmfileRepoName }}
-        branchName: $(Build.SourceBranch)
-        tagsCollection: ${{ parameters.imageTagVariableName }}=$(build.buildnumber)
-        commitMessage: Updated ${{ parameters.imageTagVariableName }} to $(build.buildnumber)
+  - stage: updateHelmConfig
+    displayName: Update Helm Config Repository
+    dependsOn:
+      - docker_publish
+    jobs:
+      - job: updateHelmConfigJob
+        pool:
+          name: Default
+        workspace:
+          clean: all
+        steps:
+          - template: ../../publish/helmfileconfig/steps-process-cicd/v1.yml
+            parameters:
+              repositoryResource: ${{ parameters.helmfileRepoName }}
+              branchName: $(Build.SourceBranch)
+              tagsCollection: ${{ parameters.imageTagVariableName }}=$(build.buildnumber)
+              commitMessage: Updated ${{ parameters.imageTagVariableName }} to $(build.buildnumber)

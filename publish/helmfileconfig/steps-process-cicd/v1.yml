@@ -1,36 +1,36 @@
 parameters:
-- name: repositoryResource
-  type: string
-- name: branchName
-  type: string
-  default: refs/heads/main
-# Should be something like tokenservice=1.1.1,datamanager=3.3.3
-- name: tagsCollection
-  type: string
-- name: commitMessage
-  type: string
+  - name: repositoryResource
+    type: string
+  - name: branchName
+    type: string
+    default: refs/heads/main
+  # Should be something like tokenservice=1.1.1,datamanager=3.3.3
+  - name: tagsCollection
+    type: string
+  - name: commitMessage
+    type: string
 
 steps:
-- checkout: ${{ parameters.repositoryResource }}
-  clean: true
-  persistCredentials: true
-  fetchDepth: 0
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '3.x'
-- script: |
-    cd scripts
-    pip3 install -r requirements.txt
-  displayName: Install Requirements for YAML editor
+  - checkout: ${{ parameters.repositoryResource }}
+    clean: true
+    persistCredentials: true
+    fetchDepth: 0
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: "3.x"
+  - script: |
+      cd scripts
+      pip3 install -r requirements.txt
+    displayName: Install Requirements for YAML editor
 
-- script: |
-    git config --global user.email "gerega@gmail.com"
-    git config --global user.name "CI/CD User"
-    
-  displayName: Configure Git User
-- task: PowerShell@2
-  displayName: Run Process-CICD Script in Helmconfig
-  inputs:
-    targetType: 'filePath' # Optional. Options: filePath, inline
-    filePath: scripts/process-cicd.ps1 # Required when targetType == FilePath
-    arguments: -branchName "${{ parameters.branchName }}" -tags ${{ parameters.tagsCollection }} -message "${{ parameters.commitMessage }}"  # Optional
+  - script: |
+      git config --global user.email "gerega@gmail.com"
+      git config --global user.name "CI/CD User"
+
+    displayName: Configure Git User
+  - task: PowerShell@2
+    displayName: Run Process-CICD Script in Helmconfig
+    inputs:
+      targetType: "filePath" # Optional. Options: filePath, inline
+      filePath: scripts/process-cicd.ps1 # Required when targetType == FilePath
+      arguments: -branchName "${{ parameters.branchName }}" -tags ${{ parameters.tagsCollection }} -message "${{ parameters.commitMessage }}" # Optional

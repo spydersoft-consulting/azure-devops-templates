@@ -1,42 +1,42 @@
 parameters:
-- name: repositoryResource
-  type: string
-- name: artifactName
-  type: string
-- name: argoBaseDir
-  type: string
-  default: apps
-- name: commitMessage
-  type: string
+  - name: repositoryResource
+    type: string
+  - name: artifactName
+    type: string
+  - name: argoBaseDir
+    type: string
+    default: apps
+  - name: commitMessage
+    type: string
 
 steps:
-- checkout: ${{ parameters.repositoryResource }}
-  clean: true
-  persistCredentials: true
-- script: |
-    rm -Rf $(Pipeline.Workspace)/${{ parameters.artifactName }}
-  displayName: Delete Temporary Workspace
-- task: DownloadPipelineArtifact@2
-  inputs:
-    source: 'current' # Options: current, specific
-    artifact: ${{ parameters.artifactName }}
-    path: '$(Pipeline.Workspace)/${{ parameters.artifactName }}'
-- pwsh: |
-    git config --global user.email "gerega@gmail.com"
-    git config --global user.name "CI/CD User"
-    cd $(Build.SourcesDirectory)
-    git checkout main
-    git pull --rebase
+  - checkout: ${{ parameters.repositoryResource }}
+    clean: true
+    persistCredentials: true
+  - script: |
+      rm -Rf $(Pipeline.Workspace)/${{ parameters.artifactName }}
+    displayName: Delete Temporary Workspace
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: "current" # Options: current, specific
+      artifact: ${{ parameters.artifactName }}
+      path: "$(Pipeline.Workspace)/${{ parameters.artifactName }}"
+  - pwsh: |
+      git config --global user.email "gerega@gmail.com"
+      git config --global user.name "CI/CD User"
+      cd $(Build.SourcesDirectory)
+      git checkout main
+      git pull --rebase
 
-    $folders = Get-ChildItem -Path $(Pipeline.Workspace)/${{ parameters.artifactName }}/ -Directory
-    foreach ($folder in $folders) {
-      if (Test-Path "$(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/$($folder.Name)") {
-        Remove-Item "$(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/$($folder.Name)" -Recurse -Force
+      $folders = Get-ChildItem -Path $(Pipeline.Workspace)/${{ parameters.artifactName }}/ -Directory
+      foreach ($folder in $folders) {
+        if (Test-Path "$(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/$($folder.Name)") {
+          Remove-Item "$(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/$($folder.Name)" -Recurse -Force
+        }
       }
-    }
 
-    Copy-Item $(Pipeline.Workspace)/${{ parameters.artifactName }}/* $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/ -Recurse -Force
-    git add --all
-    git commit -m "${{ parameters.commitMessage }}"
-    git push origin main
-  displayName: Commit to Argo Repo
+      Copy-Item $(Pipeline.Workspace)/${{ parameters.artifactName }}/* $(Build.SourcesDirectory)/${{ parameters.argoBaseDir }}/ -Recurse -Force
+      git add --all
+      git commit -m "${{ parameters.commitMessage }}"
+      git push origin main
+    displayName: Commit to Argo Repo

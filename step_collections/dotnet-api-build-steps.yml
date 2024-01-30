@@ -1,45 +1,44 @@
-
 parameters:
-- name: BUILD_CONFIGURATION
-  default: 'Release'
-  type: string
-- name: netCoreVersion
-  type: string
-  default: '5.0.x'
-- name: buildProject
-  type: string
-- name: publishProject
-  type: string
-- name: prebuildSteps
-  type: stepList
-  default: []
-- name: preTestSteps
-  type: stepList
-  default: []
-- name: execute_sonar
-  type: boolean
-  default: false
-- name: sonar_endpoint_name
-  type: string
-  default: ""
-- name: sonar_project_key
-  type: string
-  default: ""
-- name: sonar_project_name
-  type: string
-  default: ""
-- name: use_sonarcloud
-  type: boolean
-  default: false
-- name: sonar_cloud_organization
-  type: string
-  default: ""
-- name: execute_tests
-  type: boolean
-  default: false
-- name: test_projects
-  type: string
-  default: "**/*tests/*.csproj"
+  - name: BUILD_CONFIGURATION
+    default: "Release"
+    type: string
+  - name: netCoreVersion
+    type: string
+    default: "5.0.x"
+  - name: buildProject
+    type: string
+  - name: publishProject
+    type: string
+  - name: prebuildSteps
+    type: stepList
+    default: []
+  - name: preTestSteps
+    type: stepList
+    default: []
+  - name: execute_sonar
+    type: boolean
+    default: false
+  - name: sonar_endpoint_name
+    type: string
+    default: ""
+  - name: sonar_project_key
+    type: string
+    default: ""
+  - name: sonar_project_name
+    type: string
+    default: ""
+  - name: use_sonarcloud
+    type: boolean
+    default: false
+  - name: sonar_cloud_organization
+    type: string
+    default: ""
+  - name: execute_tests
+    type: boolean
+    default: false
+  - name: test_projects
+    type: string
+    default: "**/*tests/*.csproj"
 
 # TODO - Add test steps (even though there may only be one test)
 steps:
@@ -47,128 +46,126 @@ steps:
     fetchDepth: 0
     clean: true
   - task: UseDotNet@2
-    displayName: 'Use .NET Core sdk'
+    displayName: "Use .NET Core sdk"
     inputs:
       packageType: sdk
       version: ${{ parameters.netCoreVersion }}
   - task: gitversion/setup@0
     displayName: Setup GitVersion on Agent
     inputs:
-      versionSpec: '5.x'
+      versionSpec: "5.x"
   - task: gitversion/execute@0
     displayName: Execute GitVersion to update build number
 
-
   - ${{ if eq(parameters.execute_sonar, true) }}:
-    - ${{ if eq(parameters.use_sonarcloud, true) }}:
-      # Prepare Analysis Configuration task
-      - task: SonarCloudPrepare@1
-        inputs:
-          SonarCloud: ${{ parameters.sonar_endpoint_name }}
-          organization: ${{ parameters.sonar_cloud_organization }}
-          scannerMode: 'MSBuild'
-          projectKey: ${{ parameters.sonar_project_key }}
-          projectName: ${{ parameters.sonar_project_name }}
-          extraProperties: |
-            sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
-    - ${{ else }}:
-      # Prepare Analysis Configuration task
-      - task: SonarQubePrepare@5
-        inputs:
-          SonarQube: ${{ parameters.sonar_endpoint_name }}
-          scannerMode: 'MSBuild'
-          projectKey: ${{ parameters.sonar_project_key }}
-          projectName: ${{ parameters.sonar_project_name }}
-          extraProperties: |
-            sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
+      - ${{ if eq(parameters.use_sonarcloud, true) }}:
+          # Prepare Analysis Configuration task
+          - task: SonarCloudPrepare@1
+            inputs:
+              SonarCloud: ${{ parameters.sonar_endpoint_name }}
+              organization: ${{ parameters.sonar_cloud_organization }}
+              scannerMode: "MSBuild"
+              projectKey: ${{ parameters.sonar_project_key }}
+              projectName: ${{ parameters.sonar_project_name }}
+              extraProperties: |
+                sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
+      - ${{ else }}:
+          # Prepare Analysis Configuration task
+          - task: SonarQubePrepare@5
+            inputs:
+              SonarQube: ${{ parameters.sonar_endpoint_name }}
+              scannerMode: "MSBuild"
+              projectKey: ${{ parameters.sonar_project_key }}
+              projectName: ${{ parameters.sonar_project_name }}
+              extraProperties: |
+                sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
 
   - ${{ parameters.prebuildSteps }}
 
   - task: DotNetCoreCLI@2
-    displayName: 'DotNet restore packages (dotnet restore)'
+    displayName: "DotNet restore packages (dotnet restore)"
     inputs:
-      command: 'restore'
+      command: "restore"
       feedsToUse: config
       nugetConfigPath: "$(Build.SourcesDirectory)/nuget.config"
       projects: "**/*.csproj"
-      externalFeedCredentials: 'SpydersoftDevelop'
+      externalFeedCredentials: "SpydersoftDevelop"
 
   - task: DotNetCoreCLI@2
     displayName: Build (dotnet build)
     inputs:
       command: build
       projects: ${{ parameters.buildProject }}
-      arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)'
-      
+      arguments: "--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)"
 
   - ${{ if eq(parameters.execute_tests, true) }}:
-    - ${{ parameters.preTestSteps }}
+      - ${{ parameters.preTestSteps }}
 
-    - task: DotNetCoreCLI@2
-      displayName: Test (dotnet test)
-      inputs:
-        command: test
-        projects: ${{ parameters.test_projects}}
-        publishTestResults: false
-        arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
-    
-    - pwsh: |
-        Push-Location $(Agent.TempDirectory);
-        mkdir "ResultFiles";
-        $resultFiles = Get-ChildItem -Directory -Filter resultfiles;
+      - task: DotNetCoreCLI@2
+        displayName: Test (dotnet test)
+        inputs:
+          command: test
+          projects: ${{ parameters.test_projects}}
+          publishTestResults: false
+          arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
 
-        $trxFile = Get-ChildItem *.trx;
-        $trxFileName = [System.IO.Path]::GetFileNameWithoutExtension($trxFile);
-              
-        if (Test-Path $trxFilename) {      
-          Push-Location $trxFilename;
-          $coverageFiles = Get-ChildItem -Recurse -filter coverage.*.xml;
-          foreach ($coverageFile in $coverageFiles) 
-          {
-            Copy-Item $coverageFile $resultFiles.FullName;
+      - pwsh: |
+          Push-Location $(Agent.TempDirectory);
+          mkdir "ResultFiles";
+          $resultFiles = Get-ChildItem -Directory -Filter resultfiles;
+
+          $trxFile = Get-ChildItem *.trx;
+          $trxFileName = [System.IO.Path]::GetFileNameWithoutExtension($trxFile);
+                
+          if (Test-Path $trxFilename) {      
+            Push-Location $trxFilename;
+            $coverageFiles = Get-ChildItem -Recurse -filter coverage.*.xml;
+            foreach ($coverageFile in $coverageFiles) 
+            {
+              Copy-Item $coverageFile $resultFiles.FullName;
+            }
+
+            Pop-Location;
           }
-        
-          Pop-Location;
-        }
-      displayName: Copy Test Files
+        displayName: Copy Test Files
 
-    - task: PublishTestResults@2
-      inputs:
-        testResultsFormat: 'VSTest' # 'JUnit' | 'NUnit' | 'VSTest' | 'XUnit' | 'CTest'. Alias: testRunner. Required. Test result format. Default: JUnit.
-        testResultsFiles: '$(Agent.TempDirectory)/*.trx'
+      - task: PublishTestResults@2
+        inputs:
+          testResultsFormat: "VSTest" # 'JUnit' | 'NUnit' | 'VSTest' | 'XUnit' | 'CTest'. Alias: testRunner. Required. Test result format. Default: JUnit.
+          testResultsFiles: "$(Agent.TempDirectory)/*.trx"
 
-    - task: PublishCodeCoverageResults@1
-      condition: true # always try publish coverage results, even if unit tests fail
-      inputs:
-        codeCoverageTool: 'cobertura' # Options: cobertura, jaCoCo
-        summaryFileLocation: '$(Agent.TempDirectory)/ResultFiles/**/coverage.cobertura.xml'
+      - task: PublishCodeCoverageResults@1
+        condition: true # always try publish coverage results, even if unit tests fail
+        inputs:
+          codeCoverageTool: "cobertura" # Options: cobertura, jaCoCo
+          summaryFileLocation: "$(Agent.TempDirectory)/ResultFiles/**/coverage.cobertura.xml"
 
   - ${{ if eq(parameters.execute_sonar, true) }}:
-    - ${{ if eq(parameters.use_sonarcloud, true) }}:
-      # Run Code Analysis task
-      - task: SonarCloudAnalyze@1
-        inputs:
-          jdkversion: 'JAVA_HOME_17_X64'
-      # Publish Quality Gate Result task
-      - task: SonarCloudPublish@1
-        inputs:
-          pollingTimeoutSec: '300'
-    - ${{ else }}:
-      - powershell: |
-          $params = "$env:SONARQUBE_SCANNER_PARAMS" -replace '"sonar.branch.name":"[\w,/,-]*"\,?'
-          Write-Host "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$params"
-        displayName: Replace branch name
-      # Run Code Analysis task
-      - task: SonarQubeAnalyze@5
-      # Publish Quality Gate Result task
-      - task: SonarQubePublish@5
-        inputs:
-          pollingTimeoutSec: '300'
+      - ${{ if eq(parameters.use_sonarcloud, true) }}:
+          # Run Code Analysis task
+          - task: SonarCloudAnalyze@1
+            inputs:
+              jdkversion: "JAVA_HOME_17_X64"
+          # Publish Quality Gate Result task
+          - task: SonarCloudPublish@1
+            inputs:
+              pollingTimeoutSec: "300"
+      - ${{ else }}:
+          - powershell: |
+              $params = "$env:SONARQUBE_SCANNER_PARAMS" -replace '"sonar.branch.name":"[\w,/,-]*"\,?'
+              Write-Host "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$params"
+            displayName: Replace branch name
+          # Run Code Analysis task
+          - task: SonarQubeAnalyze@5
+          # Publish Quality Gate Result task
+          - task: SonarQubePublish@5
+            inputs:
+              pollingTimeoutSec: "300"
 
   - task: DotNetCoreCLI@2
     displayName: Publish (dotnet publish)
     inputs:
       command: publish
       projects: ${{ parameters.publishProject }}
-      arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --output $(Build.ArtifactStagingDirectory) /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)'
+      arguments: "--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --output $(Build.ArtifactStagingDirectory) /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)"
       zipAfterPublish: True

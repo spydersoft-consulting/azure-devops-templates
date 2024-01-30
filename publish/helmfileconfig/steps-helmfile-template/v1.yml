@@ -1,53 +1,51 @@
 parameters:
-# Name of artifact produced by build stage
-- name: 'kubernetesConnectionName'
-  type: string
-# Environment Name, needs to match a file in 
-- name: 'environmentName'
-  type: string
-# Kubernetes Namespace for Deployment
-- name: 'namespace'
-  type: string
-- name: helmfileDirectory
-  type: string
-- name: 'displayPrefix'
-  type: string
-  default: 'App'
-- name: pre_generate_steps
-  type: stepList
-  default: []
-
+  # Name of artifact produced by build stage
+  - name: "kubernetesConnectionName"
+    type: string
+  # Environment Name, needs to match a file in
+  - name: "environmentName"
+    type: string
+  # Kubernetes Namespace for Deployment
+  - name: "namespace"
+    type: string
+  - name: helmfileDirectory
+    type: string
+  - name: "displayPrefix"
+    type: string
+    default: "App"
+  - name: pre_generate_steps
+    type: stepList
+    default: []
 
 steps:
-- checkout: self
-  clean: true
-  persistCredentials: true
-- task: Kubernetes@1
-  displayName: ${{ parameters.displayPrefix }} - K8 Login
-  inputs:
-    command: login
-    connectionType: Kubernetes Service Connection
-    kubernetesServiceEndpoint: ${{ parameters.kubernetesConnectionName }}
-    useClusterAdmin: true
-    cwd: $(System.DefaultWorkingDirectory)/${{ parameters.helmfileDirectory }}
-- ${{ parameters.pre_generate_steps }}
-- script: |
-    curl -L https://github.com/helmfile/helmfile/releases/download/v0.160.0/helmfile_0.160.0_linux_amd64.tar.gz > $(Agent.TempDirectory)/helmfile.tar.gz
-    tar -xvf $(Agent.TempDirectory)/helmfile.tar.gz -C $(Agent.TempDirectory)
-    chmod +x $(Agent.TempDirectory)/helmfile
-  displayName: ${{ parameters.displayPrefix }} - Install Helmfile
-- script: |
-    cd ${{ parameters.helmfileDirectory }}
-    $(Agent.TempDirectory)/helmfile repos --environment ${{ parameters.environmentName }}
-  displayName: ${{ parameters.displayPrefix }} - Add Dependencies
-- script: |
-    cd ${{ parameters.helmfileDirectory }}
-    rm -Rf $(Build.ArtifactStagingDirectory)/output/${{ parameters.environmentName }}
-    $(Agent.TempDirectory)/helmfile --environment ${{ parameters.environmentName }} template --output-dir-template "$(Build.ArtifactStagingDirectory)/output/{{ .Release.Namespace }}"
-  displayName: ${{ parameters.displayPrefix }} - Generate Output Environments
-- task: PublishPipelineArtifact@1
-  inputs:
-    targetPath: '$(Build.ArtifactStagingDirectory)/output/'
-    artifactName: '${{ parameters.environmentName }}'
-    artifactType: pipeline
-      
+  - checkout: self
+    clean: true
+    persistCredentials: true
+  - task: Kubernetes@1
+    displayName: ${{ parameters.displayPrefix }} - K8 Login
+    inputs:
+      command: login
+      connectionType: Kubernetes Service Connection
+      kubernetesServiceEndpoint: ${{ parameters.kubernetesConnectionName }}
+      useClusterAdmin: true
+      cwd: $(System.DefaultWorkingDirectory)/${{ parameters.helmfileDirectory }}
+  - ${{ parameters.pre_generate_steps }}
+  - script: |
+      curl -L https://github.com/helmfile/helmfile/releases/download/v0.160.0/helmfile_0.160.0_linux_amd64.tar.gz > $(Agent.TempDirectory)/helmfile.tar.gz
+      tar -xvf $(Agent.TempDirectory)/helmfile.tar.gz -C $(Agent.TempDirectory)
+      chmod +x $(Agent.TempDirectory)/helmfile
+    displayName: ${{ parameters.displayPrefix }} - Install Helmfile
+  - script: |
+      cd ${{ parameters.helmfileDirectory }}
+      $(Agent.TempDirectory)/helmfile repos --environment ${{ parameters.environmentName }}
+    displayName: ${{ parameters.displayPrefix }} - Add Dependencies
+  - script: |
+      cd ${{ parameters.helmfileDirectory }}
+      rm -Rf $(Build.ArtifactStagingDirectory)/output/${{ parameters.environmentName }}
+      $(Agent.TempDirectory)/helmfile --environment ${{ parameters.environmentName }} template --output-dir-template "$(Build.ArtifactStagingDirectory)/output/{{ .Release.Namespace }}"
+    displayName: ${{ parameters.displayPrefix }} - Generate Output Environments
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: "$(Build.ArtifactStagingDirectory)/output/"
+      artifactName: "${{ parameters.environmentName }}"
+      artifactType: pipeline
