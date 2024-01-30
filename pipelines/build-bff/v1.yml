@@ -144,8 +144,9 @@ stages:
         sonar_endpoint_name: ${{ parameters.ui_sonar_endpoint_name }}
         use_sonarcloud: ${{ parameters.ui_use_sonarcloud }}
         sonar_cloud_organization: ${{ parameters.ui_sonar_cloud_organization }}
-        sonar_project_key: ${{ parameters.ui_sonar_project_key }}
-        sonar_sources: ${{ parameters.ui_sonar_sources }}
+        sonar_config_file: ${{ parameters.ui_sonar_config_file }}
+        # sonar_project_key: ${{ parameters.ui_sonar_project_key }}
+        # sonar_sources: ${{ parameters.ui_sonar_sources }}
 
     - template: ../../step_collections/dotnet-api-build-steps/v1.yml
       parameters:
