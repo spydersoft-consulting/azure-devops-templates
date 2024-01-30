@@ -55,7 +55,7 @@ parameters:
   - name: ui_sonar_cloud_organization
     type: string
     default: ""
-  - name: sonar_config_file
+  - name: ui_sonar_config_file
     type: string
     default: "sonar-project.properties"
   # - name: ui_sonar_project_key
