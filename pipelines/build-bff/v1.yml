@@ -46,7 +46,7 @@ parameters:
     default: "output/coverage/cobertura-coverage.xml"
   - name: ui_unit_test_file
     type: string
-    default": "output/test/junit.xml"
+    default: "output/test/junit.xml"
 
   # UI Sonarqube Settings
   - name: ui_execute_sonar
@@ -63,7 +63,6 @@ parameters:
   - name: ui_sonar_config_file
     type: string
     default: "sonar-project.properties"
-  - name: ui_uni
 
   # Build Artifact Settings
   - name: artifactName
