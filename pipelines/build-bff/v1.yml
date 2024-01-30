@@ -41,6 +41,9 @@ parameters:
   - name: ui_source_directory
     type: string
     default: "src/ui"
+  - name: ui_code_coverage_file
+    type: string
+    default: "output/coverage/cobertura-coverage.xml"
 
   # UI Sonarqube Settings
   - name: ui_execute_sonar
@@ -139,7 +142,8 @@ stages:
               use_sonarcloud: ${{ parameters.ui_use_sonarcloud }}
               sonar_cloud_organization: ${{ parameters.ui_sonar_cloud_organization }}
               sonar_config_file: ${{ parameters.ui_sonar_config_file }}
-
+              codeCoverageFile: ${{ parameters.ui_code_coverage_file }}
+              
           - template: ../../step_collections/dotnet-api-build-steps/v1.yml
             parameters:
               buildProject: ${{ parameters.buildProject }}
