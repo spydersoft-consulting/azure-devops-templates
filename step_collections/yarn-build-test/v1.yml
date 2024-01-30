@@ -45,6 +45,9 @@ parameters:
 - name: sonar_cloud_organization
   type: string
   default: ''
+- name: sonar_config_file
+  type: string
+  default: 'sonar-project.properties'
 
 steps:
 - ${{ parameters.preBuildSteps }}
