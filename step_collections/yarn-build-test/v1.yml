@@ -68,13 +68,15 @@ steps:
           organization: ${{ parameters.sonar_cloud_organization }}
           scannerMode: 'CLI'
           configMode: 'file'
+          configFile: ${{ parameters.sonar_config_file }}
     - ${{ else }}:
       # Prepare Analysis Configuration task
       - task: SonarQubePrepare@5
         inputs:
           SonarQube: ${{ parameters.sonar_endpoint_name }}
           scannerMode: 'CLI'
-          configMode: 'file'       
+          configMode: 'file'
+          configFile: ${{ parameters.sonar_config_file }}       
 
 
 - pwsh: |
