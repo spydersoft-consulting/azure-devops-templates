@@ -61,7 +61,7 @@ steps:
               scannerMode: "MSBuild"
               configMode: "file"
               configFile: ${{ parameters.sonar_config_file }}
-              # projectKey: ${{ parameters.sonar_project_key }}
+              projectKey: ${{ parameters.sonar_project_key }}
               # projectName: ${{ parameters.sonar_project_name }}
               extraProperties: |
                 sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
