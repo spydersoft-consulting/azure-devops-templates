@@ -39,7 +39,7 @@ parameters:
   - name: test_projects
     type: string
     default: "**/*tests/*.csproj"
-  - name: sonare_extra_properties
+  - name: sonar_extra_properties
     type: string
     default: ""
 
@@ -63,7 +63,7 @@ steps:
               projectName: ${{ parameters.sonar_project_name }}
               extraProperties: |
                 sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
-                ${{ parameters.sonare_extra_properties }}
+                ${{ parameters.sonar_extra_properties }}
       - ${{ else }}:
           # Prepare Analysis Configuration task
           - task: SonarQubePrepare@5
