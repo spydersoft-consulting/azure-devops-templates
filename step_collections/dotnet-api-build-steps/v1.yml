@@ -33,9 +33,6 @@ parameters:
   - name: sonar_cloud_organization
     type: string
     default: ""
-  - name: sonar_config_file
-    type: string
-    default: "sonar-project.properties"
   - name: execute_tests
     type: boolean
     default: false
@@ -62,10 +59,8 @@ steps:
               SonarCloud: ${{ parameters.sonar_endpoint_name }}
               organization: ${{ parameters.sonar_cloud_organization }}
               scannerMode: "MSBuild"
-              configMode: "file"
-              configFile: ${{ parameters.sonar_config_file }}
               projectKey: ${{ parameters.sonar_project_key }}
-              # projectName: ${{ parameters.sonar_project_name }}
+              projectName: ${{ parameters.sonar_project_name }}
               extraProperties: |
                 sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
                 ${{ parameters.sonare_extra_properties }}

@@ -167,7 +167,6 @@ stages:
               test_projects: ${{ parameters.bff_test_projects }}
               use_sonarcloud: ${{ parameters.bff_use_sonarcloud }}
               sonar_cloud_organization: ${{ parameters.bff_sonar_cloud_organization }}
-              sonar_config_file: ${{ parameters.bff_sonar_config_file }}
               sonar_extra_properties: ${{ parameters.bff_sonar_extra_properties }}
 
           # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
