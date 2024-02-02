@@ -1,0 +1,49 @@
+
+parameters:
+- name: confluenceOrg
+  type: string
+- name: confluenceUser
+  default: ''
+  type: string
+- name: confluenceApiKey
+  default: ''
+  type: string
+- name: mdsToPublish
+  type: object
+  # default:
+  #   - path: path/from/root.md
+  #     spaceKey: SpaceKey
+  #     parent: "Test"
+  #   - path: path/from/another/root.md
+  #     spaceKey: SpaceKey
+  #     parent: "Test2"
+- name: repositoryName
+  type: string
+  default: $(Build.Repository.Name)
+
+jobs:
+  - job: publish
+    displayName: 'Publish MD'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:  
+      - script: |
+          docker pull ghcr.io/mermaid-js/mermaid-cli/mermaid-cli
+          pip install md-to-conf
+        displayName: Install Tools
+      
+      - ${{ each file in parameters.mdsToPublish }}:
+        - script: |
+            mkdir $(dirname $(Build.ArtifactStagingDirectory)/${{ file.path }})
+            docker run --rm -u `id -u`:`id -g` -v $(Build.SourcesDirectory):/data -v $(Build.ArtifactStagingDirectory):/staging ghcr.io/mermaid-js/mermaid-cli/mermaid-cli -i ${{ file.path }} -o /staging/${{ file.path }} -e png
+          displayName: ${{ file.path }} - Mermaid to Image
+
+        - script: | 
+            export CONFLUENCE_USERNAME='${{ parameters.confluenceUser }}'
+            export CONFLUENCE_API_KEY='${{ parameters.confluenceApiKey }}'
+            export CONFLUENCE_ORGNAME='${{ parameters.confluenceOrg }}'
+            md-to-conf $(Build.ArtifactStagingDirectory)/${{ file.path }} ${{ file.space }} -a '${{ file.parent }}' --label '${{ parameters.repositoryName }}' --label 'md-generated'
+          displayName: ${{ file.path }} - Publish
+
+      - publish: '$(Build.ArtifactStagingDirectory)' 
+        artifact: 'test'
