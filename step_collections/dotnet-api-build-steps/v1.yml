@@ -1,5 +1,6 @@
 parameters:
-  - name: BUILD_CONFIGURATION
+# Build Parameters
+  - name: buildConfiguration
     default: "Release"
     type: string
   - name: netCoreVersion
@@ -7,43 +8,50 @@ parameters:
     default: "5.0.x"
   - name: buildProject
     type: string
+
+# Publish Parameters
   - name: publishProject
     type: string
+
+# Test Parameters
+  - name: executeTests
+    type: boolean
+    default: false
+  - name: testProjects
+    type: string
+    default: "**/*tests/*.csproj"
+
+# SonarQube Parameters
+  - name: executeSonar
+    type: boolean
+    default: false
+  - name: sonarEndpointName
+    type: string
+    default: ""
+  - name: sonarProjectKey
+    type: string
+    default: ""
+  - name: sonarProjectName
+    type: string
+    default: ""
+  - name: useSonarCloud
+    type: boolean
+    default: false
+  - name: sonarCloudOrganization
+    type: string
+    default: ""
+  - name: sonarExtraProperties
+    type: string
+    default: ""
+
+# Hooks
   - name: prebuildSteps
     type: stepList
     default: []
   - name: preTestSteps
     type: stepList
     default: []
-  - name: execute_sonar
-    type: boolean
-    default: false
-  - name: sonar_endpoint_name
-    type: string
-    default: ""
-  - name: sonar_project_key
-    type: string
-    default: ""
-  - name: sonar_project_name
-    type: string
-    default: ""
-  - name: use_sonarcloud
-    type: boolean
-    default: false
-  - name: sonar_cloud_organization
-    type: string
-    default: ""
-  - name: execute_tests
-    type: boolean
-    default: false
-  - name: test_projects
-    type: string
-    default: "**/*tests/*.csproj"
-  - name: sonar_extra_properties
-    type: string
-    default: ""
 
-# TODO - Add test steps (even though there may only be one test)
 steps:
   - task: UseDotNet@2
     displayName: "Use .NET Core sdk"
@@ -51,27 +59,25 @@ steps:
       packageType: sdk
       version: ${{ parameters.netCoreVersion }}
 
-  - ${{ if eq(parameters.execute_sonar, true) }}:
-      - ${{ if eq(parameters.use_sonarcloud, true) }}:
-          # Prepare Analysis Configuration task
+  - ${{ if eq(parameters.executeSonar, true) }}:
+      - ${{ if eq(parameters.useSonarCloud, true) }}:
           - task: SonarCloudPrepare@1
             inputs:
-              SonarCloud: ${{ parameters.sonar_endpoint_name }}
-              organization: ${{ parameters.sonar_cloud_organization }}
+              SonarCloud: ${{ parameters.sonarEndpointName }}
+              organization: ${{ parameters.sonarCloudOrganization }}
               scannerMode: "MSBuild"
-              projectKey: ${{ parameters.sonar_project_key }}
-              projectName: ${{ parameters.sonar_project_name }}
+              projectKey: ${{ parameters.sonarProjectKey }}
+              projectName: ${{ parameters.sonarProjectName }}
               extraProperties: |
                 sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
-                ${{ parameters.sonar_extra_properties }}
+                ${{ parameters.sonarExtraProperties }}
       - ${{ else }}:
-          # Prepare Analysis Configuration task
           - task: SonarQubePrepare@5
             inputs:
-              SonarQube: ${{ parameters.sonar_endpoint_name }}
+              SonarQube: ${{ parameters.sonarEndpointName }}
               scannerMode: "MSBuild"
-              projectKey: ${{ parameters.sonar_project_key }}
-              projectName: ${{ parameters.sonar_project_name }}
+              projectKey: ${{ parameters.sonarProjectKey }}
+              projectName: ${{ parameters.sonarProjectName }}
               extraProperties: |
                 sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
 
@@ -91,18 +97,18 @@ steps:
     inputs:
       command: build
       projects: ${{ parameters.buildProject }}
-      arguments: "--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)"
+      arguments: "--no-restore --configuration ${{ parameters.buildConfiguration }} /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)"
 
-  - ${{ if eq(parameters.execute_tests, true) }}:
+  - ${{ if eq(parameters.executeTests, true) }}:
       - ${{ parameters.preTestSteps }}
 
       - task: DotNetCoreCLI@2
         displayName: Test (dotnet test)
         inputs:
           command: test
-          projects: ${{ parameters.test_projects}}
+          projects: ${{ parameters.testProjects}}
           publishTestResults: false
-          arguments: '--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
+          arguments: '--no-restore --configuration ${{ parameters.buildConfiguration }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
 
       - pwsh: |
           Push-Location $(Agent.TempDirectory);
@@ -126,22 +132,20 @@ steps:
 
       - task: PublishTestResults@2
         inputs:
-          testResultsFormat: "VSTest" # 'JUnit' | 'NUnit' | 'VSTest' | 'XUnit' | 'CTest'. Alias: testRunner. Required. Test result format. Default: JUnit.
+          testResultsFormat: "VSTest" 
           testResultsFiles: "$(Agent.TempDirectory)/*.trx"
 
       - task: PublishCodeCoverageResults@1
         condition: true # always try publish coverage results, even if unit tests fail
         inputs:
-          codeCoverageTool: "cobertura" # Options: cobertura, jaCoCo
+          codeCoverageTool: "cobertura" 
           summaryFileLocation: "$(Agent.TempDirectory)/ResultFiles/**/coverage.cobertura.xml"
 
-  - ${{ if eq(parameters.execute_sonar, true) }}:
-      - ${{ if eq(parameters.use_sonarcloud, true) }}:
-          # Run Code Analysis task
+  - ${{ if eq(parameters.executeSonar, true) }}:
+      - ${{ if eq(parameters.useSonarCloud, true) }}:
           - task: SonarCloudAnalyze@1
             inputs:
               jdkversion: "JAVA_HOME_17_X64"
-          # Publish Quality Gate Result task
           - task: SonarCloudPublish@1
             inputs:
               pollingTimeoutSec: "300"
@@ -150,9 +154,7 @@ steps:
               $params = "$env:SONARQUBE_SCANNER_PARAMS" -replace '"sonar.branch.name":"[\w,/,-]*"\,?'
               Write-Host "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$params"
             displayName: Replace branch name
-          # Run Code Analysis task
           - task: SonarQubeAnalyze@5
-          # Publish Quality Gate Result task
           - task: SonarQubePublish@5
             inputs:
               pollingTimeoutSec: "300"
@@ -162,5 +164,5 @@ steps:
     inputs:
       command: publish
       projects: ${{ parameters.publishProject }}
-      arguments: "--no-restore --configuration ${{ parameters.BUILD_CONFIGURATION }} --output $(Build.ArtifactStagingDirectory) /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)"
+      arguments: "--no-restore --configuration ${{ parameters.buildConfiguration }} --output $(Build.ArtifactStagingDirectory) /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)"
       zipAfterPublish: True

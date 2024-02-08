@@ -94,22 +94,32 @@ stages:
           name: Default
           demands: agent.os -equals Linux
         steps:
-          - template: ../../step_collections/dotnet-api-build-steps.yml
+          - checkout: self
+            fetchDepth: 0
+            clean: true
+          - task: gitversion/setup@0
+            displayName: Setup GitVersion on Agent
+            inputs:
+              versionSpec: "5.x"
+          - task: gitversion/execute@0
+            displayName: Execute GitVersion to update build number
+
+          - template: ../../step_collections/dotnet-api-build-steps/v1.yml
             parameters:
               buildProject: ${{ parameters.buildProject }}
               publishProject: ${{ parameters.publishProject }}
               netCoreVersion: ${{ parameters.netCoreVersion }}
-              BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }}
+              buildConfiguration: ${{ parameters.buildConfiguration }}
               prebuildSteps: ${{ parameters.prebuildSteps }}
               preTestSteps: ${{ parameters.preTestSteps }}
-              execute_sonar: ${{ parameters.execute_sonar }}
-              sonar_endpoint_name: ${{ parameters.sonar_endpoint_name }}
-              sonar_project_key: ${{ parameters.sonar_project_key }}
-              sonar_project_name: ${{ parameters.sonar_project_name }}
-              execute_tests: ${{ parameters.execute_tests }}
-              test_projects: ${{ parameters.test_projects }}
-              use_sonarcloud: ${{ parameters.use_sonarcloud }}
-              sonar_cloud_organization: ${{ parameters.sonar_cloud_organization }}
+              executeSonar: ${{ parameters.execute_sonar }}
+              sonarEndpointName: ${{ parameters.sonar_endpoint_name }}
+              sonarProjectKey: ${{ parameters.sonar_project_key }}
+              sonarProjectName: ${{ parameters.sonar_project_name }}
+              executeTests: ${{ parameters.execute_tests }}
+              testProjects: ${{ parameters.test_projects }}
+              useSonarCloud: ${{ parameters.use_sonarcloud }}
+              sonarCloudOrganization: ${{ parameters.sonar_cloud_organization }}
           # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
           - publish: "$(Build.ArtifactStagingDirectory)"
             artifact: "${{ parameters.artifactName }}"

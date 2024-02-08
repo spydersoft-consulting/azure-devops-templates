@@ -156,18 +156,18 @@ stages:
               buildProject: ${{ parameters.buildProject }}
               publishProject: ${{ parameters.publishProject }}
               netCoreVersion: ${{ parameters.netCoreVersion }}
-              BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }}
+              buildConfiguration: ${{ parameters.buildConfiguration }}
               prebuildSteps: ${{ parameters.prebuildSteps }}
               preTestSteps: ${{ parameters.preTestSteps }}
-              execute_sonar: ${{ parameters.bff_execute_sonar }}
-              sonar_endpoint_name: ${{ parameters.bff_sonar_endpoint_name }}
-              sonar_project_key: ${{ parameters.bff_sonar_project_key }}
-              sonar_project_name: ${{ parameters.bff_sonar_project_name }}
-              execute_tests: ${{ parameters.bff_execute_tests }}
-              test_projects: ${{ parameters.bff_test_projects }}
-              use_sonarcloud: ${{ parameters.bff_use_sonarcloud }}
-              sonar_cloud_organization: ${{ parameters.bff_sonar_cloud_organization }}
-              sonar_extra_properties: ${{ parameters.bff_sonar_extra_properties }}
+              executeSonar: ${{ parameters.bff_execute_sonar }}
+              sonarEndpointName: ${{ parameters.bff_sonar_endpoint_name }}
+              sonarProjectKey: ${{ parameters.bff_sonar_project_key }}
+              sonarProjectName: ${{ parameters.bff_sonar_project_name }}
+              executeTests: ${{ parameters.bff_execute_tests }}
+              testProjects: ${{ parameters.bff_test_projects }}
+              useSonarCloud: ${{ parameters.bff_use_sonarcloud }}
+              sonarCloudOrganization: ${{ parameters.bff_sonar_cloud_organization }}
+              sonarExtraProperties: ${{ parameters.bff_sonar_extra_properties }}
 
           # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
           - publish: "$(Build.ArtifactStagingDirectory)"
