@@ -8,7 +8,7 @@ This template contains common steps for building, testing, and analyzing .NET AP
 
 ### Use Case
 
-This is just a step template, so it needs to be included in steps as part of your stage and job.  Below is a simple example
+This is just a step template, so it needs to be included in steps as part of your stage and job. Below is a simple example
 
 ```yaml
 
@@ -19,7 +19,7 @@ This is just a step template, so it needs to be included in steps as part of you
 | Name               | Type   | Description                                                                                                   | Default Value              |
 | ------------------ | ------ | ------------------------------------------------------------------------------------------------------------- | -------------------------- |
 | `confluenceOrg`    | string | The Atlassian cloud org name.                                                                                 |                            |
-| `confluenceUser`   | string | he Atlassian username.  Typcially an email address                                                            |                            |
+| `confluenceUser`   | string | he Atlassian username. Typcially an email address                                                             |                            |
 | `confluenceApiKey` | string | An API key tied to the Atlassian username                                                                     |                            |
 | `mdsToPublish`     | object | List Markdown files to publish Projects to Pack. See [Defining files to publish](#defining-files-to-publish). |                            |
 | `repositoryName`   | string | Repository name, used as a label on the page                                                                  | `$(Build.Repository.Name)` |

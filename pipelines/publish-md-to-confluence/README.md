@@ -41,18 +41,18 @@ extends:
 ```
 
 The `atlassianVariables` group contains the following variables:
-| Name             | Value                                               |
+| Name | Value |
 | ---------------- | --------------------------------------------------- |
-| orgName          | The Atlassian cloud org name.                       |
-| confluenceUser   | The Atlassian username.  Typcially an email address |
-| confluenceApiKey | An API key tied to the Atlassian username           |
+| orgName | The Atlassian cloud org name. |
+| confluenceUser | The Atlassian username. Typcially an email address |
+| confluenceApiKey | An API key tied to the Atlassian username |
 
 ## Parameters
 
 | Name               | Type   | Description                                                                                                   | Default Value              |
 | ------------------ | ------ | ------------------------------------------------------------------------------------------------------------- | -------------------------- |
 | `confluenceOrg`    | string | The Atlassian cloud org name.                                                                                 |                            |
-| `confluenceUser`   | string | he Atlassian username.  Typcially an email address                                                            |                            |
+| `confluenceUser`   | string | he Atlassian username. Typcially an email address                                                             |                            |
 | `confluenceApiKey` | string | An API key tied to the Atlassian username                                                                     |                            |
 | `mdsToPublish`     | object | List Markdown files to publish Projects to Pack. See [Defining files to publish](#defining-files-to-publish). |                            |
 | `repositoryName`   | string | Repository name, used as a label on the page                                                                  | `$(Build.Repository.Name)` |

@@ -1,5 +1,5 @@
 parameters:
-# Build Parameters
+  # Build Parameters
   - name: buildConfiguration
     default: "Release"
     type: string
@@ -9,11 +9,11 @@ parameters:
   - name: buildProject
     type: string
 
-# Publish Parameters
+  # Publish Parameters
   - name: publishProject
     type: string
 
-# Test Parameters
+  # Test Parameters
   - name: executeTests
     type: boolean
     default: false
@@ -21,7 +21,7 @@ parameters:
     type: string
     default: "**/*tests/*.csproj"
 
-# SonarQube Parameters
+  # SonarQube Parameters
   - name: executeSonar
     type: boolean
     default: false
@@ -44,7 +44,7 @@ parameters:
     type: string
     default: ""
 
-# Hooks
+  # Hooks
   - name: prebuildSteps
     type: stepList
     default: []
@@ -132,13 +132,13 @@ steps:
 
       - task: PublishTestResults@2
         inputs:
-          testResultsFormat: "VSTest" 
+          testResultsFormat: "VSTest"
           testResultsFiles: "$(Agent.TempDirectory)/*.trx"
 
       - task: PublishCodeCoverageResults@1
         condition: true # always try publish coverage results, even if unit tests fail
         inputs:
-          codeCoverageTool: "cobertura" 
+          codeCoverageTool: "cobertura"
           summaryFileLocation: "$(Agent.TempDirectory)/ResultFiles/**/coverage.cobertura.xml"
 
   - ${{ if eq(parameters.executeSonar, true) }}:
