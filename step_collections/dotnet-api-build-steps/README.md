@@ -39,6 +39,3 @@ When passing files to publish, `mdsToPublish` expects an object with three prope
 ### 1.0.0 \[v1.yml\]
 
 - Initial Creation
-
-[1]: https://github.com/mermaid-js/mermaid-cli "Mermaid CLI"
-[2]: https://github.com/spydersoft-consulting/md_to_conf "md-to-conf"
