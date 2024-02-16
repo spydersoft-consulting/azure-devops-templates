@@ -73,7 +73,6 @@ The repository structure is as follows:
 - [pipelines](./pipelines/) - Templates in here should be treated as templates to be [extended][1], as opposed to [included][2]. They generally represent full, multi-stage pipelines.
 - [stages](./stages/) - Templates in here should be treated primarily as [include][2] templates. Each template should represent a single stage with one or more jobs.
 - [step_collections](./step_collections/) - Templates in here should be treated primarily as [include][2] templates. Each template should represent a set of steps, with no job or stage definitions.
-- [publish](./publish/) - There are older templates that will be moved into one of the above in the future.
 
 ## Automated Styling
 

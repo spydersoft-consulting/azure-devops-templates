@@ -150,7 +150,7 @@ stages:
             workspace:
               clean: all
             steps:
-              - template: ../../publish/helmfileconfig/steps-process-cicd/v1.yml
+              - template: ../../step_collections/process-cicd-script/v1.yml
                 parameters:
                   repositoryResource: ${{ parameters.helmfileRepoName }}
                   branchName: $(Build.SourceBranch)
