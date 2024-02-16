@@ -26,7 +26,7 @@ variables:
   - group: atlassianVariables
 
 extends:
-  template: src/pipelines/extends/publish-md-to-confluence/v1.yml@azure-pipelines
+  template: pipelines/extends/publish-md-to-confluence/v1.yml@azure-pipelines
   parameters:
     mdsToPublish:
       - path: docs/somedoc.md

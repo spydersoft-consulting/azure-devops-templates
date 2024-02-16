@@ -36,7 +36,7 @@ stages:
         pool:
           name: Default
         steps:
-          - template: ../../steps_collections/helmfile-template/v1.yml
+          - template: ../../step_collections/helmfile-template/v1.yml
             parameters:
               kubernetesConnectionName: "${{ parameters.kubernetesConnectionName }}"
               environmentName: "${{ parameters.environmentName }}"
