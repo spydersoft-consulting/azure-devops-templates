@@ -49,7 +49,7 @@ stages:
         pool:
           name: Default
         steps:
-          - template: ../../step_collections/commit-to-gitops-repov1.yml@templates
+          - template: ../../step_collections/commit-to-gitops-repo/v1.yml@templates
             parameters:
               repositoryResource: "${{ parameters.argoRepoName }}"
               artifactName: "${{ parameters.environmentName }}"
