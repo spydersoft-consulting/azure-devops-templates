@@ -103,7 +103,7 @@ stages:
   - stage: docker_publish
     displayName: Create Docker Image
     jobs:
-      - template: ../../jobs/docker-image-job.yml
+      - template: ../../jobs/build-docker-image/v1.yml
         parameters:
           dockerImageName: ${{ parameters.dockerImageName}}
           containerRegistryName: ${{ parameters.containerRegistryName }}

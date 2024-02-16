@@ -3,11 +3,7 @@ parameters:
     type: string
   - name: containerRegistryName
     type: string
-  - name: containerRegistryUrl
-    type: string
   - name: artifactName
-    type: string
-  - name: dockerImageFileName
     type: string
   - name: artifactZipName
     type: string
@@ -20,7 +16,7 @@ parameters:
   - name: artifactTargetPath
     type: string
     default: ""
-  - name: prebuild_steps
+  - name: prebuildSteps
     type: stepList
     default: []
 jobs:
@@ -46,7 +42,7 @@ jobs:
           targetType: "inline"
           script: |
             cp ${{ parameters.dockerFilePath }} ${{ parameters.dockerBuildBasePath }}/Dockerfile
-      - ${{ parameters.prebuild_steps }}
+      - ${{ parameters.prebuildSteps }}
       - task: Docker@2
         displayName: Build Image
         inputs:

@@ -14,7 +14,7 @@ This is just a step template, so it needs to be included in steps as part of you
 
 ```
 
-## Parameters
+### Parameters
 
 | Name               | Type   | Description                                                                                                   | Default Value              |
 | ------------------ | ------ | ------------------------------------------------------------------------------------------------------------- | -------------------------- |

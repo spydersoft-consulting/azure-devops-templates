@@ -77,8 +77,6 @@ parameters:
     default: false
   - name: artifactZipName
     type: string
-  - name: dockerImageFileName
-    type: string
   - name: dockerImageName
     type: string
   - name: imageTagVariableName
@@ -86,9 +84,6 @@ parameters:
   - name: containerRegistryName
     type: string
     default: proget_docker
-  - name: containerRegistryUrl
-    type: string
-    default: proget.mattgerega.com
   - name: dockerFilePath
     type: string
     default: $(Build.SourcesDirectory)/Dockerfile.simple
@@ -177,14 +172,12 @@ stages:
       - stage: docker_publish
         displayName: Create Docker Image
         jobs:
-          - template: ../../jobs/docker-image-job.yml
+          - template: ../../jobs/build-docker-image/v1.yml
             parameters:
               dockerImageName: ${{ parameters.dockerImageName}}
               containerRegistryName: ${{ parameters.containerRegistryName }}
-              containerRegistryUrl: ${{ parameters.containerRegistryUrl }}
               artifactName: "${{ parameters.artifactName }}"
               artifactZipName: ${{ parameters.artifactZipName }}
-              dockerImageFileName: ${{ parameters.dockerImageFileName }}
               dockerFilePath: "${{ parameters.dockerFilePath }}"
 
   - ${{ if eq(parameters.updateHelmConfig, true) }}:
