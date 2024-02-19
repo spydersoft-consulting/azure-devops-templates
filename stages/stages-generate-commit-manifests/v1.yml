@@ -1,9 +1,5 @@
 parameters:
-  - name: kubernetesConnectionName
-    type: string
   - name: environmentName
-    type: string
-  - name: namespace
     type: string
   - name: helmfileDirectory
     default: "./"
@@ -36,11 +32,12 @@ stages:
         pool:
           name: Default
         steps:
+          - checkout: self
+            clean: true
+            persistCredentials: true
           - template: ../../step_collections/helmfile-template/v1.yml
             parameters:
-              kubernetesConnectionName: "${{ parameters.kubernetesConnectionName }}"
               environmentName: "${{ parameters.environmentName }}"
-              namespace: "${{ parameters.namespace }}"
               helmfileDirectory: "${{ parameters.helmfileDirectory }}"
               pre_generate_steps: ${{ parameters.pre_generate_steps }}
       - job: commit_changes_${{ parameters.environmentName }}

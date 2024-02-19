@@ -1,12 +1,6 @@
 parameters:
-  # Name of artifact produced by build stage
-  - name: "kubernetesConnectionName"
-    type: string
   # Environment Name, needs to match a file in
   - name: "environmentName"
-    type: string
-  # Kubernetes Namespace for Deployment
-  - name: "namespace"
     type: string
   - name: helmfileDirectory
     type: string
@@ -18,20 +12,9 @@ parameters:
     default: []
 
 steps:
-  - checkout: self
-    clean: true
-    persistCredentials: true
-  - task: Kubernetes@1
-    displayName: ${{ parameters.displayPrefix }} - K8 Login
-    inputs:
-      command: login
-      connectionType: Kubernetes Service Connection
-      kubernetesServiceEndpoint: ${{ parameters.kubernetesConnectionName }}
-      useClusterAdmin: true
-      cwd: $(System.DefaultWorkingDirectory)/${{ parameters.helmfileDirectory }}
   - ${{ parameters.pre_generate_steps }}
   - script: |
-      curl -L https://github.com/helmfile/helmfile/releases/download/v0.160.0/helmfile_0.160.0_linux_amd64.tar.gz > $(Agent.TempDirectory)/helmfile.tar.gz
+      curl -L https://github.com/helmfile/helmfile/releases/download/v0.162.0/helmfile_0.162.0_linux_amd64.tar.gz > $(Agent.TempDirectory)/helmfile.tar.gz
       tar -xvf $(Agent.TempDirectory)/helmfile.tar.gz -C $(Agent.TempDirectory)
       chmod +x $(Agent.TempDirectory)/helmfile
     displayName: ${{ parameters.displayPrefix }} - Install Helmfile

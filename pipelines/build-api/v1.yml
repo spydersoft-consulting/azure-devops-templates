@@ -51,8 +51,6 @@ parameters:
     type: string
   - name: dockerImageName
     type: string
-  - name: imageTagVariableName
-    type: string
   - name: containerRegistryName
     type: string
     default: proget_docker
@@ -65,6 +63,8 @@ parameters:
     type: boolean
     default: false
   - name: helmfileRepoName
+    type: string
+  - name: imageTagVariableName
     type: string
 
   # Hooks
