@@ -125,11 +125,11 @@ stages:
             inputs:
               packageType: sdk
               version: ${{ parameters.netCoreVersion }}
-          - task: gitversion/setup@3.0.0
+          - task: gitversion/setup@2
             displayName: Setup GitVersion on Agent
             inputs:
               versionSpec: "5.x"
-          - task: gitversion/execute@3.0.0
+          - task: gitversion/execute@2
             displayName: Execute GitVersion to update build number
 
           - template: ../../step_collections/yarn-build-test/v1.yml
