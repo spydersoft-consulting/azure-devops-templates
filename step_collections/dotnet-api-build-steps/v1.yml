@@ -61,11 +61,11 @@ steps:
 
   - ${{ if eq(parameters.executeSonar, true) }}:
       - ${{ if eq(parameters.useSonarCloud, true) }}:
-          - task: SonarCloudPrepare@2
+          - task: SonarCloudPrepare@3
             inputs:
               SonarCloud: ${{ parameters.sonarEndpointName }}
               organization: ${{ parameters.sonarCloudOrganization }}
-              scannerMode: "MSBuild"
+              scannerMode: "dotnet"
               projectKey: ${{ parameters.sonarProjectKey }}
               projectName: ${{ parameters.sonarProjectName }}
               extraProperties: |
@@ -143,10 +143,10 @@ steps:
 
   - ${{ if eq(parameters.executeSonar, true) }}:
       - ${{ if eq(parameters.useSonarCloud, true) }}:
-          - task: SonarCloudAnalyze@2
+          - task: SonarCloudAnalyze@3
             inputs:
               jdkversion: "JAVA_HOME_17_X64"
-          - task: SonarCloudPublish@2
+          - task: SonarCloudPublish@3
             inputs:
               pollingTimeoutSec: "300"
       - ${{ else }}:

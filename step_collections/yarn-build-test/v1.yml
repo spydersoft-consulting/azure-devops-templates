@@ -62,7 +62,7 @@ steps:
   - ${{ if eq(parameters.execute_sonar, true) }}:
       - ${{ if eq(parameters.use_sonarcloud, true) }}:
           # Prepare Analysis Configuration task
-          - task: SonarCloudPrepare@2
+          - task: SonarCloudPrepare@3
             inputs:
               SonarCloud: ${{ parameters.sonar_endpoint_name }}
               organization: ${{ parameters.sonar_cloud_organization }}
@@ -118,10 +118,10 @@ steps:
       - ${{ if eq(parameters.execute_sonar, true) }}:
           - ${{ if eq(parameters.use_sonarcloud, true) }}:
               # Run Code Analysis task
-              - task: SonarCloudAnalyze@2
+              - task: SonarCloudAnalyze@3
 
               # Publish Quality Gate Result task
-              - task: SonarCloudPublish@2
+              - task: SonarCloudPublish@3
                 inputs:
                   pollingTimeoutSec: "300"
           - ${{ else }}:
