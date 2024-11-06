@@ -1,4 +1,9 @@
 parameters:
+  # Gitversion
+  - name: gitVersionSpec
+    type: string
+    default: "5.x"
+
   # BFF API Build Parameters
   - name: publishProject
     type: string
@@ -128,7 +133,7 @@ stages:
           - task: gitversion/setup@3
             displayName: Setup GitVersion on Agent
             inputs:
-              versionSpec: "5.x"
+              versionSpec: ${{ parameters.gitVersionSpec }}
           - task: gitversion/execute@3
             displayName: Execute GitVersion to update build number
 
