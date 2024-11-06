@@ -79,6 +79,9 @@ parameters:
   - name: preTestSteps
     type: stepList
     default: []
+  - name: setupSteps
+    type: stepList
+    default: []
 
 variables:
   - name: DOCKER_BUILDKIT
@@ -97,6 +100,10 @@ stages:
           - checkout: self
             fetchDepth: 0
             clean: true
+            persistCredentials: true
+
+          - ${{ parameters.setupSteps }}
+
           - task: gitversion/setup@3
             displayName: Setup GitVersion on Agent
             inputs:
