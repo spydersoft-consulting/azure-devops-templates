@@ -33,16 +33,16 @@ parameters:
     type: boolean
     default: false
 
-  - name: execute_sonar
+  - name: executeSonar
     type: boolean
     default: false
-  - name: sonar_endpoint_name
+  - name: sonarEndpointName
     type: string
     default: ""
-  - name: use_sonarcloud
+  - name: useSonarCloud
     type: boolean
     default: false
-  - name: sonar_cloud_organization
+  - name: sonarCloudOrganization
     type: string
     default: ""
   - name: sonar_config_file
@@ -59,13 +59,13 @@ steps:
       versionSource: "spec"
       versionSpec: "${{ parameters.nodeVersion }}" # 16.19.0, 18.14.1, etc
 
-  - ${{ if eq(parameters.execute_sonar, true) }}:
-      - ${{ if eq(parameters.use_sonarcloud, true) }}:
+  - ${{ if eq(parameters.executeSonar, true) }}:
+      - ${{ if eq(parameters.useSonarCloud, true) }}:
           # Prepare Analysis Configuration task
           - task: SonarCloudPrepare@3
             inputs:
-              SonarCloud: ${{ parameters.sonar_endpoint_name }}
-              organization: ${{ parameters.sonar_cloud_organization }}
+              SonarCloud: ${{ parameters.sonarEndpointName }}
+              organization: ${{ parameters.sonarCloudOrganization }}
               scannerMode: "CLI"
               configMode: "file"
               configFile: ${{ parameters.sonar_config_file }}
@@ -73,7 +73,7 @@ steps:
           # Prepare Analysis Configuration task
           - task: SonarQubePrepare@5
             inputs:
-              SonarQube: ${{ parameters.sonar_endpoint_name }}
+              SonarQube: ${{ parameters.sonarEndpointName }}
               scannerMode: "CLI"
               configMode: "file"
               configFile: ${{ parameters.sonar_config_file }}
@@ -115,8 +115,8 @@ steps:
           codeCoverageTool: "cobertura"
           summaryFileLocation: "${{ parameters.codeCoverageFile }}"
 
-      - ${{ if eq(parameters.execute_sonar, true) }}:
-          - ${{ if eq(parameters.use_sonarcloud, true) }}:
+      - ${{ if eq(parameters.executeSonar, true) }}:
+          - ${{ if eq(parameters.useSonarCloud, true) }}:
               # Run Code Analysis task
               - task: SonarCloudAnalyze@3
 

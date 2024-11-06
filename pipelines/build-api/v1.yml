@@ -17,30 +17,30 @@ parameters:
     default: Release
 
   # API Test Settings
-  - name: execute_tests
+  - name: executeTests
     type: boolean
     default: false
-  - name: test_projects
+  - name: testProjects
     type: string
     default: "**/*tests/*.csproj"
 
   # API Sonarqube Settings
-  - name: execute_sonar
+  - name: executeSonar
     type: boolean
     default: false
-  - name: sonar_endpoint_name
+  - name: sonarEndpointName
     type: string
     default: ""
-  - name: sonar_project_key
+  - name: sonarProjectKey
     type: string
     default: ""
-  - name: sonar_project_name
+  - name: sonarProjectName
     type: string
     default: ""
-  - name: use_sonarcloud
+  - name: useSonarCloud
     type: boolean
     default: false
-  - name: sonar_cloud_organization
+  - name: sonarCloudOrganization
     type: string
     default: ""
 
@@ -112,14 +112,14 @@ stages:
               buildConfiguration: ${{ parameters.buildConfiguration }}
               prebuildSteps: ${{ parameters.prebuildSteps }}
               preTestSteps: ${{ parameters.preTestSteps }}
-              executeSonar: ${{ parameters.execute_sonar }}
-              sonarEndpointName: ${{ parameters.sonar_endpoint_name }}
-              sonarProjectKey: ${{ parameters.sonar_project_key }}
-              sonarProjectName: ${{ parameters.sonar_project_name }}
-              executeTests: ${{ parameters.execute_tests }}
-              testProjects: ${{ parameters.test_projects }}
-              useSonarCloud: ${{ parameters.use_sonarcloud }}
-              sonarCloudOrganization: ${{ parameters.sonar_cloud_organization }}
+              executeSonar: ${{ parameters.executeSonar }}
+              sonarEndpointName: ${{ parameters.sonarEndpointName }}
+              sonarProjectKey: ${{ parameters.sonarProjectKey }}
+              sonarProjectName: ${{ parameters.sonarProjectName }}
+              executeTests: ${{ parameters.executeTests }}
+              testProjects: ${{ parameters.testProjects }}
+              useSonarCloud: ${{ parameters.useSonarCloud }}
+              sonarCloudOrganization: ${{ parameters.sonarCloudOrganization }}
           # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
           - publish: "$(Build.ArtifactStagingDirectory)"
             artifact: "${{ parameters.artifactName }}"

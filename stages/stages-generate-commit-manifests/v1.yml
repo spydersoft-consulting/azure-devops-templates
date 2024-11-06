@@ -9,7 +9,7 @@ parameters:
   - name: argoBaseDir
     type: string
     default: apps
-  - name: pre_generate_steps
+  - name: pregenerateSteps
     type: stepList
     default: []
 
@@ -39,7 +39,7 @@ stages:
             parameters:
               environmentName: "${{ parameters.environmentName }}"
               helmfileDirectory: "${{ parameters.helmfileDirectory }}"
-              pre_generate_steps: ${{ parameters.pre_generate_steps }}
+              pregenerateSteps: ${{ parameters.pregenerateSteps }}
       - job: commit_changes_${{ parameters.environmentName }}
         dependsOn:
           - generate_manifests_${{ parameters.environmentName }}

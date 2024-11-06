@@ -36,13 +36,13 @@ stages:
 
 ## Parameters
 
-| Name                 | Type     | Description                                                      | Default Value |
-| -------------------- | -------- | ---------------------------------------------------------------- | ------------- |
-| `environmentName`    | string   | Name of the Azure DevOps environment for deployment.             |               |
-| `helmfileDirectory`  | string   | Directory where the `helmfile.yaml` file is located.             | `./`          |
-| `argoRepoName`       | string   | Azure DevOps Service Connection name for your GitOps repository. |               |
-| `argoBaseDir`        | string   | Base Directory to copy the generated templates to.               |               |
-| `pre_generate_steps` | stepList | Steps to be execute prior to manifest generation.                | `[]`          |
+| Name                | Type     | Description                                                      | Default Value |
+| ------------------- | -------- | ---------------------------------------------------------------- | ------------- |
+| `environmentName`   | string   | Name of the Azure DevOps environment for deployment.             |               |
+| `helmfileDirectory` | string   | Directory where the `helmfile.yaml` file is located.             | `./`          |
+| `argoRepoName`      | string   | Azure DevOps Service Connection name for your GitOps repository. |               |
+| `argoBaseDir`       | string   | Base Directory to copy the generated templates to.               |               |
+| `pregenerateSteps`  | stepList | Steps to be execute prior to manifest generation.                | `[]`          |
 
 ## Build Order
 

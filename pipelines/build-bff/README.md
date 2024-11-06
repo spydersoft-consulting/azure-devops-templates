@@ -43,40 +43,40 @@ extends:
 
 ### BFF API Test Parameters
 
-| Name                | Type    | Description                                                        | Default Value        |
-| ------------------- | ------- | ------------------------------------------------------------------ | -------------------- |
-| `bff_execute_tests` | boolean | If `true`, `dotnet test` will execute.                             | `false`              |
-| `bff_test_projects` | string  | Projects to Test. See [Specifying Projects](#specifying-projects). | `**/*tests/*.csproj` |
+| Name              | Type    | Description                                                        | Default Value        |
+| ----------------- | ------- | ------------------------------------------------------------------ | -------------------- |
+| `bffExecuteTests` | boolean | If `true`, `dotnet test` will execute.                             | `false`              |
+| `bffTestProjects` | string  | Projects to Test. See [Specifying Projects](#specifying-projects). | `**/*tests/*.csproj` |
 
 ### BFF API Sonarqube Parameters
 
-| Name                           | Type    | Description                                                                                              | Default Value |
-| ------------------------------ | ------- | -------------------------------------------------------------------------------------------------------- | ------------- |
-| `bff_execute_sonar`            | boolean | `true` will execute Sonarqube analysis on the BFF API project.                                           | `false`       |
-| `bff_sonar_endpoint_name`      | string  | Name of the Azure DevOps Service Connection for SonarQube/SonarCloud. Required when `executeSonar=true`. |               |
-| `bff_sonar_project_key`        | string  | SonarQube/SonarCloud Project Key. Required when `executeSonar=true`.                                     |               |
-| `bff_sonar_project_name`       | string  | SonarQube/SonarCloud Project Name. Required when `executeSonar=true`.                                    |               |
-| `bff_use_sonarcloud`           | boolean | `true` to use SonarCloud, `false` to use SonarQube.                                                      | `false`       |
-| `bff_sonar_cloud_organization` | string  | Name of the SonarCloud Organization. Required when `useSonarcloud=true`.                                 | ""            |
-| `bff_sonar_extra_properties`   | string  | Extra properties to pass to Sonar analysis.                                                              | ""            |
+| Name                        | Type    | Description                                                                                              | Default Value |
+| --------------------------- | ------- | -------------------------------------------------------------------------------------------------------- | ------------- |
+| `bffExecuteSonar`           | boolean | `true` will execute Sonarqube analysis on the BFF API project.                                           | `false`       |
+| `bffSonarEndpointName`      | string  | Name of the Azure DevOps Service Connection for SonarQube/SonarCloud. Required when `executeSonar=true`. |               |
+| `bffSonarProjectKey`        | string  | SonarQube/SonarCloud Project Key. Required when `executeSonar=true`.                                     |               |
+| `bffSonarProjectName`       | string  | SonarQube/SonarCloud Project Name. Required when `executeSonar=true`.                                    |               |
+| `bffUseSonarCloud`          | boolean | `true` to use SonarCloud, `false` to use SonarQube.                                                      | `false`       |
+| `bffSonarCloudOrganization` | string  | Name of the SonarCloud Organization. Required when `useSonarCloud=true`.                                 | ""            |
+| `bffSonarExtraProperties`   | string  | Extra properties to pass to Sonar analysis.                                                              | ""            |
 
 ### UI Build Parameters
 
-| Name                    | Type    | Description                                               | Default Value                            |
-| ----------------------- | ------- | --------------------------------------------------------- | ---------------------------------------- |
-| `ui_source_directory`   | boolean | Source directory for the SPA.                             | `src/ui`                                 |
-| `ui_code_coverage_file` | string  | Location of the code coverage file generated after tests. | `output/coverage/cobertura-coverage.xml` |
-| `ui_unit_test_file`     | string  | Location of the Unit Test Results file.                   | `output/test/junit.xml`                  |
+| Name                 | Type    | Description                                               | Default Value                            |
+| -------------------- | ------- | --------------------------------------------------------- | ---------------------------------------- |
+| `uiSourceDirectory`  | boolean | Source directory for the SPA.                             | `src/ui`                                 |
+| `uiCodeCoverageFile` | string  | Location of the code coverage file generated after tests. | `output/coverage/cobertura-coverage.xml` |
+| `uiUnitTestFile`     | string  | Location of the Unit Test Results file.                   | `output/test/junit.xml`                  |
 
 ### UI Sonarqube Parameters
 
-| Name                          | Type    | Description                                                                                              | Default Value              |
-| ----------------------------- | ------- | -------------------------------------------------------------------------------------------------------- | -------------------------- |
-| `ui_execute_sonar`            | boolean | `true` will execute Sonarqube analysis on the BFF API project.                                           | `false`                    |
-| `ui_sonar_endpoint_name`      | string  | Name of the Azure DevOps Service Connection for SonarQube/SonarCloud. Required when `executeSonar=true`. |                            |
-| `ui_use_sonarcloud`           | boolean | `true` to use SonarCloud, `false` to use SonarQube.                                                      | `false`                    |
-| `ui_sonar_cloud_organization` | string  | Name of the SonarCloud Organization. Required when `useSonarcloud=true`.                                 | ""                         |
-| `ui_sonar_config_file`        | string  | Path to the sonar project properties file for the UI.                                                    | `sonar-project.properties` |
+| Name                       | Type    | Description                                                                                              | Default Value              |
+| -------------------------- | ------- | -------------------------------------------------------------------------------------------------------- | -------------------------- |
+| `uiExecuteSonar`           | boolean | `true` will execute Sonarqube analysis on the BFF API project.                                           | `false`                    |
+| `uiSonarEndpointName`      | string  | Name of the Azure DevOps Service Connection for SonarQube/SonarCloud. Required when `executeSonar=true`. |                            |
+| `uiUseSonarCloud`          | boolean | `true` to use SonarCloud, `false` to use SonarQube.                                                      | `false`                    |
+| `uiSonarCloudOrganization` | string  | Name of the SonarCloud Organization. Required when `useSonarCloud=true`.                                 | ""                         |
+| `uiSonarConfigFile`        | string  | Path to the sonar project properties file for the UI.                                                    | `sonar-project.properties` |
 
 ### Build Artifact Parameters
 

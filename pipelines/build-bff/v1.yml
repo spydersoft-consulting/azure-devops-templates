@@ -17,58 +17,58 @@ parameters:
     default: Release
 
   # BFF API Test Settings
-  - name: bff_execute_tests
+  - name: bffExecuteTests
     type: boolean
     default: false
-  - name: bff_test_projects
+  - name: bffTestProjects
     type: string
     default: "**/*tests/*.csproj"
 
   # BFF API Sonarqube Settings
-  - name: bff_execute_sonar
+  - name: bffExecuteSonar
     type: boolean
     default: false
-  - name: bff_sonar_endpoint_name
+  - name: bffSonarEndpointName
     type: string
-  - name: bff_sonar_project_key
+  - name: bffSonarProjectKey
     type: string
-  - name: bff_sonar_project_name
+  - name: bffSonarProjectName
     type: string
     default: ""
-  - name: bff_use_sonarcloud
+  - name: bffUseSonarCloud
     type: boolean
     default: false
-  - name: bff_sonar_cloud_organization
+  - name: bffSonarCloudOrganization
     type: string
     default: ""
-  - name: bff_sonar_extra_properties
+  - name: bffSonarExtraProperties
     type: string
     default: ""
 
   # UI Build
-  - name: ui_source_directory
+  - name: uiSourceDirectory
     type: string
     default: "src/ui"
-  - name: ui_code_coverage_file
+  - name: uiCodeCoverageFile
     type: string
     default: "output/coverage/cobertura-coverage.xml"
-  - name: ui_unit_test_file
+  - name: uiUnitTestFile
     type: string
     default: "output/test/junit.xml"
 
   # UI Sonarqube Settings
-  - name: ui_execute_sonar
+  - name: uiExecuteSonar
     type: boolean
     default: false
-  - name: ui_sonar_endpoint_name
+  - name: uiSonarEndpointName
     type: string
-  - name: ui_use_sonarcloud
+  - name: uiUseSonarCloud
     type: boolean
     default: false
-  - name: ui_sonar_cloud_organization
+  - name: uiSonarCloudOrganization
     type: string
     default: ""
-  - name: ui_sonar_config_file
+  - name: uiSonarConfigFile
     type: string
     default: "sonar-project.properties"
 
@@ -141,15 +141,15 @@ stages:
             parameters:
               nodeVersion: "21.4.0"
               zipBuildArtifacts: false
-              workingDir: ${{ parameters.ui_source_directory }}
+              workingDir: ${{ parameters.uiSourceDirectory }}
               useYarn2: true
-              execute_sonar: ${{ parameters.ui_execute_sonar }}
-              sonar_endpoint_name: ${{ parameters.ui_sonar_endpoint_name }}
-              use_sonarcloud: ${{ parameters.ui_use_sonarcloud }}
-              sonar_cloud_organization: ${{ parameters.ui_sonar_cloud_organization }}
-              sonar_config_file: ${{ parameters.ui_sonar_config_file }}
-              codeCoverageFile: ${{ parameters.ui_code_coverage_file }}
-              unitTestFile: ${{ parameters.ui_unit_test_file }}
+              executeSonar: ${{ parameters.uiExecuteSonar }}
+              sonarEndpointName: ${{ parameters.uiSonarEndpointName }}
+              useSonarCloud: ${{ parameters.uiUseSonarCloud }}
+              sonarCloudOrganization: ${{ parameters.uiSonarCloudOrganization }}
+              sonar_config_file: ${{ parameters.uiSonarConfigFile }}
+              codeCoverageFile: ${{ parameters.uiCodeCoverageFile }}
+              unitTestFile: ${{ parameters.uiUnitTestFile }}
 
           - template: ../../step_collections/dotnet-api-build-steps/v1.yml
             parameters:
@@ -159,15 +159,15 @@ stages:
               buildConfiguration: ${{ parameters.buildConfiguration }}
               prebuildSteps: ${{ parameters.prebuildSteps }}
               preTestSteps: ${{ parameters.preTestSteps }}
-              executeSonar: ${{ parameters.bff_execute_sonar }}
-              sonarEndpointName: ${{ parameters.bff_sonar_endpoint_name }}
-              sonarProjectKey: ${{ parameters.bff_sonar_project_key }}
-              sonarProjectName: ${{ parameters.bff_sonar_project_name }}
-              executeTests: ${{ parameters.bff_execute_tests }}
-              testProjects: ${{ parameters.bff_test_projects }}
-              useSonarCloud: ${{ parameters.bff_use_sonarcloud }}
-              sonarCloudOrganization: ${{ parameters.bff_sonar_cloud_organization }}
-              sonarExtraProperties: ${{ parameters.bff_sonar_extra_properties }}
+              executeSonar: ${{ parameters.bffExecuteSonar }}
+              sonarEndpointName: ${{ parameters.bffSonarEndpointName }}
+              sonarProjectKey: ${{ parameters.bffSonarProjectKey }}
+              sonarProjectName: ${{ parameters.bffSonarProjectName }}
+              executeTests: ${{ parameters.bffExecuteTests }}
+              testProjects: ${{ parameters.bffTestProjects }}
+              useSonarCloud: ${{ parameters.bffUseSonarCloud }}
+              sonarCloudOrganization: ${{ parameters.bffSonarCloudOrganization }}
+              sonarExtraProperties: ${{ parameters.bffSonarExtraProperties }}
 
           # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
           - publish: "$(Build.ArtifactStagingDirectory)"
