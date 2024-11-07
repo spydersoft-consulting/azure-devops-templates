@@ -231,7 +231,7 @@ jobs:
         artifact: "${{ parameters.buildArtifactName }}"
 
       - ${{ if eq(parameters.publishToNuget, true) }}:
-          - task: NuGetCommand@2
+          - task: DotNetCoreCLI@2
             inputs:
               command: "push"
               packagesToPush: "$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg"
