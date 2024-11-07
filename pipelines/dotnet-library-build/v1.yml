@@ -1,0 +1,237 @@
+parameters:
+  - name: buildConfiguration
+    default: "Release"
+    type: string
+  - name: dotnetSdk
+    type: string
+    default: "8.0.x"
+  - name: projectsToBuild
+    type: string
+    default: "**/*.csproj"
+  - name: projectsToPack
+    type: string
+    default: "**/*.csproj"
+  - name: buildArtifactName
+    type: string
+    default: packages
+
+  - name: executeGitVersion
+    type: boolean
+    default: true
+  - name: gitVersionVersion
+    type: string
+    default: "5.x"
+
+  # Nuget Restore
+  - name: projectsToRestore
+    type: string
+    default: "**/*.csproj"
+  - name: nugetConfigPath
+    type: string
+    default: ""
+
+  # Nuget Publish
+  - name: publishToNuget
+    type: boolean
+    default: true
+
+  - name: externalNugetFeed
+    type: string
+    default: "SpydersoftDevelop"
+
+  # Unit Testing
+  - name: executeTests
+    type: boolean
+    default: false
+  - name: projectsToTest
+    type: string
+    default: "**/*.UnitTests/*.csproj"
+
+  # SonarQube/SonarCloud Scanning
+  - name: executeSonar
+    type: boolean
+    default: false
+  - name: useSonarCloud
+    type: boolean
+    default: true
+  - name: sonarCloudOrganization
+    type: string
+    default: "spydersoft-consulting"
+  - name: sonarExtraProperties
+    type: string
+    default: ""
+  - name: sonarEndpointName
+    type: string
+    default: ""
+  - name: sonarProjectKey
+    type: string
+    default: ""
+  - name: sonarProjectName
+    type: string
+    default: ""
+
+  # Hooks
+  - name: prebuildSteps
+    type: stepList
+    default: []
+  - name: preTestSteps
+    type: stepList
+    default: []
+
+jobs:
+  - job: "librarybuild"
+    displayName: ".NET Library build"
+    pool:
+      vmImage: "ubuntu-latest"
+    steps:
+      - checkout: self
+        fetchDepth: 0
+        clean: true
+      - task: UseDotNet@2
+        displayName: "Use .NET Core sdk"
+        inputs:
+          packageType: sdk
+          version: ${{ parameters.dotnetSdk }}
+
+      - ${{ if eq(parameters.executeGitVersion, true) }}:
+          - task: gitversion/setup@3.0.0
+            displayName: Setup GitVersion on Agent
+            inputs:
+              versionSpec: "${{ parameters.gitVersionVersion }}"
+          - task: gitversion/execute@3.0.0
+            displayName: Execute GitVersion to update build number
+
+      - ${{ if eq(parameters.executeSonar, true) }}:
+          - ${{ if eq(parameters.useSonarcloud, true) }}:
+              # Prepare Analysis Configuration task
+              - task: SonarCloudPrepare@3
+                inputs:
+                  SonarCloud: ${{ parameters.sonarEndpointName }}
+                  organization: ${{ parameters.sonarCloudOrganization }}
+                  scannerMode: "dotnet"
+                  projectKey: ${{ parameters.sonarProjectKey }}
+                  projectName: ${{ parameters.sonarProjectName }}
+                  extraProperties: |
+                    sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
+                    ${{ parameters.sonarExtraProperties }}
+          - ${{ else }}:
+              # Prepare Analysis Configuration task
+              - task: SonarQubePrepare@5
+                inputs:
+                  SonarQube: ${{ parameters.sonarEndpointName }}
+                  scannerMode: "MSBuild"
+                  projectKey: ${{ parameters.sonarProjectKey }}
+                  projectName: ${{ parameters.sonarProjectName }}
+                  extraProperties: |
+                    sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
+
+      - ${{ parameters.prebuildSteps }}
+
+      - task: NuGetAuthenticate@1
+        inputs:
+          nuGetServiceConnections: ${{ parameters.externalNugetFeed }}
+
+      - ${{ if ne(parameters.nugetConfigPath, '') }}:
+          - task: DotNetCoreCLI@2
+            displayName: "DotNet restore packages (dotnet restore)"
+            inputs:
+              command: "restore"
+              projects: ${{ parameters.projectsToRestore }}
+              feedsToUse: "config"
+              nugetConfigPath: ${{ parameters.nugetConfigPath }}
+      - ${{ else }}:
+          - task: DotNetCoreCLI@2
+            displayName: "DotNet restore packages (dotnet restore)"
+            inputs:
+              command: "restore"
+              projects: ${{ parameters.projectsToRestore }}
+
+      - task: DotNetCoreCLI@2
+        displayName: Build (dotnet build)
+        inputs:
+          command: build
+          projects: ${{ parameters.projectsToBuild }}
+          arguments: "--no-restore --configuration ${{ parameters.buildConfiguration }} /p:Version=$(NugetVersion) /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)"
+
+      - ${{ if eq(parameters.executeTests, true) }}:
+          - ${{ parameters.preTestSteps }}
+
+          - task: DotNetCoreCLI@2
+            displayName: Test (dotnet test)
+            inputs:
+              command: test
+              projects: ${{ parameters.projectsToTest}}
+              publishTestResults: false
+              arguments: '--no-restore --configuration ${{ parameters.buildConfiguration }} --logger trx --results-directory "$(Agent.TempDirectory)"'
+
+          - pwsh: |
+              Push-Location $(Agent.TempDirectory);
+              mkdir "ResultFiles";
+              $resultFiles = Get-ChildItem -Directory -Filter resultfiles;
+
+              $trxFile = Get-ChildItem *.trx;
+              $trxFileName = [System.IO.Path]::GetFileNameWithoutExtension($trxFile);
+                    
+              if (Test-Path $trxFilename) {      
+                Push-Location $trxFilename;
+                $coverageFiles = Get-ChildItem -Recurse -filter coverage.*.xml;
+                foreach ($coverageFile in $coverageFiles) 
+                {
+                  Copy-Item $coverageFile $resultFiles.FullName;
+                }
+
+                Pop-Location;
+              }
+            displayName: Copy Test Files
+
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: "VSTest"
+              testResultsFiles: "$(Agent.TempDirectory)/*.trx"
+
+          - task: PublishCodeCoverageResults@2
+            condition: true # always try publish coverage results, even if unit tests fail
+            inputs:
+              summaryFileLocation: "$(Agent.TempDirectory)/ResultFiles/**/coverage.cobertura.xml"
+
+      - ${{ if eq(parameters.executeSonar, true) }}:
+          - ${{ if eq(parameters.useSonarcloud, true) }}:
+              # Run Code Analysis task
+              - task: SonarCloudAnalyze@3
+                inputs:
+                  jdkversion: "JAVA_HOME_17_X64"
+              # Publish Quality Gate Result task
+              - task: SonarCloudPublish@3
+                inputs:
+                  pollingTimeoutSec: "300"
+          - ${{ else }}:
+              - powershell: |
+                  $params = "$env:SONARQUBE_SCANNER_PARAMS" -replace '"sonar.branch.name":"[\w,/,-]*"\,?'
+                  Write-Host "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$params"
+                displayName: Replace branch name
+              # Run Code Analysis task
+              - task: SonarQubeAnalyze@5
+              # Publish Quality Gate Result task
+              - task: SonarQubePublish@5
+                inputs:
+                  pollingTimeoutSec: "300"
+
+      - task: DotNetCoreCLI@2
+        displayName: Pack
+        inputs:
+          command: pack
+          packagesToPack: ${{ parameters.projectsToPack }}
+          arguments: "--no-restore --no-build --configuration ${{ parameters.buildConfiguration }} --output $(Build.ArtifactStagingDirectory)"
+          versioningScheme: byEnvVar
+          versionEnvVar: "GitVersion.SemVer"
+
+      - publish: "$(Build.ArtifactStagingDirectory)"
+        artifact: "${{ parameters.buildArtifactName }}"
+
+      - ${{ if eq(parameters.publishToNuget, true) }}:
+          - task: NuGetCommand@2
+            inputs:
+              command: "push"
+              packagesToPush: "$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg"
+              nuGetFeedType: "internal"
+              externalFeedCredentials: ${{ parameters.externalNugetFeed }}

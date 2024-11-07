@@ -18,9 +18,8 @@ resources:
   repositories:
     - repository: azure-devops-templates
       type: github
-      endpoint: youraspire
+      endpoint: spydersoft-gh
       name: spydersoft-consulting/azure-devops-templates
-      ref: main
 
 variables:
   - group: atlassianVariables
