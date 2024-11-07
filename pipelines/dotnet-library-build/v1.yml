@@ -29,15 +29,17 @@ parameters:
   - name: nugetConfigPath
     type: string
     default: ""
+  - name: externalNugetFeed
+    type: string
+    default: "SpydersoftDevelop"
 
   # Nuget Publish
   - name: publishToNuget
     type: boolean
     default: true
-
-  - name: externalNugetFeed
+  - name: externalPublishFeed
     type: string
-    default: "SpydersoftDevelop"
+    default: SpydersoftDevelopPush
 
   # Unit Testing
   - name: executeTests
@@ -234,4 +236,4 @@ jobs:
               command: "push"
               packagesToPush: "$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg"
               nuGetFeedType: "external"
-              publishFeedCredentials: ${{ parameters.externalNugetFeed }}
+              publishFeedCredentials: ${{ parameters.externalPublishFeed }}
