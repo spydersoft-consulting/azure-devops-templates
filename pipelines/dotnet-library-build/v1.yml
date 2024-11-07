@@ -37,9 +37,12 @@ parameters:
   - name: publishToNuget
     type: boolean
     default: true
-  - name: externalPublishFeed
+  - name: externalPublishUrl
     type: string
-    default: SpydersoftDevelopPush
+    default: ""
+  - name: externalPublishApiKey
+    type: string
+    default: ""
 
   # Unit Testing
   - name: executeTests
@@ -233,7 +236,7 @@ jobs:
       - ${{ if eq(parameters.publishToNuget, true) }}:
           - task: DotNetCoreCLI@2
             inputs:
-              command: "push"
-              packagesToPush: "$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg"
-              nuGetFeedType: "external"
-              publishFeedCredentials: ${{ parameters.externalPublishFeed }}
+              command: custom
+              custom: nuget
+              arguments: >
+                push $(Build.ArtifactStagingDirectory)/*.nupkg -s ${{ parameters.externalPublishUrl }} -k ${{ parameters.externalPublishApiKey }}
