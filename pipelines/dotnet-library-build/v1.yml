@@ -233,5 +233,5 @@ jobs:
             inputs:
               command: "push"
               packagesToPush: "$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg"
-              nuGetFeedType: "internal"
-              externalFeedCredentials: ${{ parameters.externalNugetFeed }}
+              nuGetFeedType: "external"
+              publishFeedCredentials: ${{ parameters.externalNugetFeed }}
