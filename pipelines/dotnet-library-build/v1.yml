@@ -82,7 +82,7 @@ jobs:
   - job: "librarybuild"
     displayName: ".NET Library build"
     pool:
-      vmImage: "ubuntu-latest"
+      name: "Default"
     steps:
       - checkout: self
         fetchDepth: 0
