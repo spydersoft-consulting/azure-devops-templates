@@ -48,7 +48,7 @@ parameters:
   - name: executeTests
     type: boolean
     default: false
-  - name: projectsToTest
+  - name: testProjects
     type: string
     default: "**/*.UnitTests/*.csproj"
 
@@ -117,7 +117,7 @@ jobs:
                   projectKey: ${{ parameters.sonarProjectKey }}
                   projectName: ${{ parameters.sonarProjectName }}
                   extraProperties: |
-                    sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
+                    sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/**/coverage.opencover.xml"
                     ${{ parameters.sonarExtraProperties }}
           - ${{ else }}:
               # Prepare Analysis Configuration task
@@ -128,7 +128,7 @@ jobs:
                   projectKey: ${{ parameters.sonarProjectKey }}
                   projectName: ${{ parameters.sonarProjectName }}
                   extraProperties: |
-                    sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/coverage.opencover.xml"
+                    sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/**/coverage.opencover.xml"
 
       - ${{ parameters.prebuildSteps }}
 
@@ -170,22 +170,25 @@ jobs:
               arguments: '--no-restore --configuration ${{ parameters.buildConfiguration }} --logger trx --results-directory "$(Agent.TempDirectory)"'
 
           - pwsh: |
-              Push-Location $(Agent.TempDirectory);
+              Push-Location "D:\temp\results";
+              if (Test-Path "ResultFiles") 
+              {
+                  Remove-Item "ResultFiles" -Recurse -Force;
+              }
               mkdir "ResultFiles";
               $resultFiles = Get-ChildItem -Directory -Filter resultfiles;
 
-              $trxFile = Get-ChildItem *.trx;
-              $trxFileName = [System.IO.Path]::GetFileNameWithoutExtension($trxFile);
-                    
-              if (Test-Path $trxFilename) {      
-                Push-Location $trxFilename;
-                $coverageFiles = Get-ChildItem -Recurse -filter coverage.*.xml;
-                foreach ($coverageFile in $coverageFiles) 
-                {
-                  Copy-Item $coverageFile $resultFiles.FullName;
-                }
+              $trxFiles = Get-ChildItem *.trx;
+              foreach ($trxFile in $trxFiles) 
+              {
+                  $trxFileName = [System.IO.Path]::GetFileNameWithoutExtension($trxFile);
+                  $copyPath = [System.IO.Path]::Combine($trxFile.Directory, $trxFileName);
 
-                Pop-Location;
+                  Write-Host "Processing $copyPath";
+                  if (Test-Path $copyPath) 
+                  {     
+                      Copy-Item $copyPath $resultFiles.FullName -Recurse;
+                  }
               }
             displayName: Copy Test Files
 
