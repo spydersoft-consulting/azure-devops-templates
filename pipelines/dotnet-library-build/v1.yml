@@ -170,7 +170,7 @@ jobs:
               arguments: '--no-restore --configuration ${{ parameters.buildConfiguration }} --logger trx --results-directory "$(Agent.TempDirectory)"'
 
           - pwsh: |
-              Push-Location "D:\temp\results";
+              Push-Location $(Agent.TempDirectory);
               if (Test-Path "ResultFiles") 
               {
                   Remove-Item "ResultFiles" -Recurse -Force;
