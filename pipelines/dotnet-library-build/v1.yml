@@ -165,7 +165,7 @@ jobs:
             displayName: Test (dotnet test)
             inputs:
               command: test
-              projects: ${{ parameters.projectsToTest}}
+              projects: ${{ parameters.testProjects}}
               publishTestResults: false
               arguments: '--no-restore --configuration ${{ parameters.buildConfiguration }} --logger trx --results-directory "$(Agent.TempDirectory)"'
 
