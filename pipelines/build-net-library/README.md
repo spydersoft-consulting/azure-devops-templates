@@ -20,7 +20,7 @@ resources:
       name: spydersoft-consulting/azure-devops-templates
 
 extends:
-  template: src/pipelines/extends/dotnet-library-build/v1.yml@azure-pipelines
+  template: src/pipelines/extends/build-net-libraray/v1.yml@azure-pipelines
   parameters:
     buildProject: source/Spydersoft.Core.Hosting/Spydersoft.Core.Hosting.csproj
 ```
