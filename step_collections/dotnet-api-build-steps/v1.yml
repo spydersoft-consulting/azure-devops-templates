@@ -52,6 +52,10 @@ parameters:
     type: stepList
     default: []
 
+  - name: externalFeedCredentials
+    type: string
+    default: "SpydersoftDevelop"
+
 steps:
   - task: UseDotNet@2
     displayName: "Use .NET Core sdk"
@@ -90,7 +94,7 @@ steps:
       feedsToUse: config
       nugetConfigPath: "$(Build.SourcesDirectory)/nuget.config"
       projects: "**/*.csproj"
-      externalFeedCredentials: "SpydersoftDevelop"
+      externalFeedCredentials: ${{ parameters.externalFeedCredentials }}
 
   - task: DotNetCoreCLI@2
     displayName: Build (dotnet build)

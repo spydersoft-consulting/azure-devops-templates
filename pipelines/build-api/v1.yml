@@ -16,6 +16,10 @@ parameters:
     type: string
     default: Release
 
+  - name: externalFeedCredentials
+    type: string
+    default: "SpydersoftDevelop"
+
   # API Test Settings
   - name: executeTests
     type: boolean
@@ -117,6 +121,7 @@ stages:
               publishProject: ${{ parameters.publishProject }}
               netCoreVersion: ${{ parameters.netCoreVersion }}
               buildConfiguration: ${{ parameters.buildConfiguration }}
+              externalFeedCredentials: ${{ parameters.externalFeedCredentials }}
               prebuildSteps: ${{ parameters.prebuildSteps }}
               preTestSteps: ${{ parameters.preTestSteps }}
               executeSonar: ${{ parameters.executeSonar }}
