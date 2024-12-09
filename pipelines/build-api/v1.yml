@@ -2,7 +2,7 @@ parameters:
   # Gitversion
   - name: gitVersionSpec
     type: string
-    default: "5.x"
+    default: "6.0.x"
 
   # API Build Parameters
   - name: publishProject
@@ -11,7 +11,7 @@ parameters:
     type: string
   - name: netCoreVersion
     type: string
-    default: "6.0.x"
+    default: "6.x"
   - name: buildConfiguration
     type: string
     default: Release

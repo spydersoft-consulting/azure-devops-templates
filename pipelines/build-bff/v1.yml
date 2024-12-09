@@ -2,7 +2,7 @@ parameters:
   # Gitversion
   - name: gitVersionSpec
     type: string
-    default: "5.x"
+    default: "6.0.x"
 
   # BFF API Build Parameters
   - name: publishProject
