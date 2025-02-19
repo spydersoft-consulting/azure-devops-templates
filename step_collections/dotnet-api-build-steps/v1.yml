@@ -144,10 +144,9 @@ steps:
           testResultsFormat: "VSTest"
           testResultsFiles: "$(Agent.TempDirectory)/*.trx"
 
-      - task: PublishCodeCoverageResults@1
+      - task: PublishCodeCoverageResults@2
         condition: true # always try publish coverage results, even if unit tests fail
         inputs:
-          codeCoverageTool: "cobertura"
           summaryFileLocation: "$(Agent.TempDirectory)/ResultFiles/**/coverage.cobertura.xml"
 
   - ${{ if eq(parameters.executeSonar, true) }}:

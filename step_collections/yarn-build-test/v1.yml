@@ -109,10 +109,9 @@ steps:
           testResultsFiles: "${{ parameters.unitTestFile }}"
           failTaskOnFailedTests: true
 
-      - task: PublishCodeCoverageResults@1
+      - task: PublishCodeCoverageResults@2
         displayName: Publish Code Coverage Results
         inputs:
-          codeCoverageTool: "cobertura"
           summaryFileLocation: "${{ parameters.codeCoverageFile }}"
 
       - ${{ if eq(parameters.executeSonar, true) }}:
