@@ -142,7 +142,7 @@ stages:
 
           - template: ../../step_collections/yarn-build-test/v1.yml
             parameters:
-              nodeVersion: "21.4.0"
+              nodeVersion: "22.x"
               zipBuildArtifacts: false
               workingDir: ${{ parameters.uiSourceDirectory }}
               useYarn2: true
