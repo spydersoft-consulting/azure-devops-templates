@@ -47,6 +47,9 @@ parameters:
   - name: sonarCloudOrganization
     type: string
     default: ""
+  - name: sonarExtraProperties
+    type: string
+    default: ""
 
   # Build Artifact Settings
   - name: artifactName
@@ -132,6 +135,7 @@ stages:
               testProjects: ${{ parameters.testProjects }}
               useSonarCloud: ${{ parameters.useSonarCloud }}
               sonarCloudOrganization: ${{ parameters.sonarCloudOrganization }}
+              sonarExtraProperties: ${{ parameters.sonarExtraProperties }}
           # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your pipeline.
           - publish: "$(Build.ArtifactStagingDirectory)"
             artifact: "${{ parameters.artifactName }}"
