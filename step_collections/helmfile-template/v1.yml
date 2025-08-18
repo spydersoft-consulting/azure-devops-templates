@@ -10,11 +10,14 @@ parameters:
   - name: pregenerateSteps
     type: stepList
     default: []
+  - name: "helmfileVersion"
+    type: string
+    default: "0.162.0"
 
 steps:
   - ${{ parameters.pregenerateSteps }}
   - script: |
-      curl -L https://github.com/helmfile/helmfile/releases/download/v0.162.0/helmfile_0.162.0_linux_amd64.tar.gz > $(Agent.TempDirectory)/helmfile.tar.gz
+      curl -L https://github.com/helmfile/helmfile/releases/download/v{{ parameters.helmfileVersion }}/helmfile_{{ parameters.helmfileVersion }}_linux_amd64.tar.gz > $(Agent.TempDirectory)/helmfile.tar.gz
       tar -xvf $(Agent.TempDirectory)/helmfile.tar.gz -C $(Agent.TempDirectory)
       chmod +x $(Agent.TempDirectory)/helmfile
     displayName: ${{ parameters.displayPrefix }} - Install Helmfile

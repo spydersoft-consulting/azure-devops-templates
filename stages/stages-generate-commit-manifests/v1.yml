@@ -12,6 +12,9 @@ parameters:
   - name: pregenerateSteps
     type: stepList
     default: []
+  - name: "helmfileVersion"
+    type: string
+    default: "0.162.0"
 
 stages:
   - stage: generate_commit_manifest_${{ parameters.environmentName }}
@@ -40,6 +43,7 @@ stages:
               environmentName: "${{ parameters.environmentName }}"
               helmfileDirectory: "${{ parameters.helmfileDirectory }}"
               pregenerateSteps: ${{ parameters.pregenerateSteps }}
+              helmfileVersion: ${{ parameters.helmfileVersion }}
       - job: commit_changes_${{ parameters.environmentName }}
         dependsOn:
           - generate_manifests_${{ parameters.environmentName }}
