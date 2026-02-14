@@ -75,8 +75,8 @@ parameters:
     type: string
     default: ""
   - name: additionalNetVersions
-    type: string
-    default: ""
+    type: object
+    default: []
 
   # Hooks
   - name: prebuildSteps
