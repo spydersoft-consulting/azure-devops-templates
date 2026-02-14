@@ -75,7 +75,7 @@ parameters:
     type: string
     default: ""
   - name: additionalNetVersions
-    type: list(string)
+    type: stringList
     default: []
 
   # Hooks
