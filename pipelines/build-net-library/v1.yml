@@ -74,6 +74,9 @@ parameters:
   - name: sonarProjectName
     type: string
     default: ""
+  - name: additionalNetVersions
+    type: list(string)
+    default: []
 
   # Hooks
   - name: prebuildSteps
@@ -97,6 +100,13 @@ jobs:
         inputs:
           packageType: sdk
           version: ${{ parameters.dotnetSdk }}
+
+      - ${{ each version in parameters.additionalNetVersions }}:
+          - task: UseDotNet@2
+            displayName: "Use .NET Core sdk ${{ version }}"
+            inputs:
+              packageType: sdk
+              version: ${{ version }}
 
       - ${{ if eq(parameters.executeGitVersion, true) }}:
           - task: gitversion/setup@3
