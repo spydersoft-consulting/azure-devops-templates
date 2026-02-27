@@ -1,0 +1,78 @@
+parameters:
+  - name: confluenceOrg
+    type: string
+  - name: confluenceUser
+    default: ""
+    type: string
+  - name: confluenceApiKey
+    default: ""
+    type: string
+
+  # Each entry in publishGroups is published as a single md-to-conf invocation.
+  # All files in a group share the same spaceKey and parent page, which enables
+  # automatic cross-document link resolution between them.
+  #
+  # Example:
+  #   - spaceKey: TST
+  #     parent: "My Docs"
+  #     paths:
+  #       - docs/intro.md
+  #       - docs/guide.md
+  #     exclude:                   # optional
+  #       - docs/drafts/**
+  #       - docs/wip*.md
+  - name: publishGroups
+    type: object
+    default: []
+
+  - name: repositoryName
+    type: string
+    default: $(Build.Repository.Name)
+
+  # Set to false to skip Mermaid rendering (e.g. network is restricted and
+  # mmdc is not installed on the agent).
+  - name: renderMermaid
+    type: boolean
+    default: true
+
+  # Set to false if mmdc is already available on the agent, or if you want
+  # md-to-conf to fall back to the mermaid.ink API without a local install.
+  # Ignored when renderMermaid is false.
+  - name: installMermaidCli
+    type: boolean
+    default: false
+
+jobs:
+  - job: publish
+    displayName: "Publish MD to Confluence"
+    pool:
+      vmImage: "ubuntu-latest"
+    steps:
+      - script: pip install md-to-conf
+        displayName: Install md-to-conf
+
+      - ${{ if and(eq(parameters.renderMermaid, true), eq(parameters.installMermaidCli, true)) }}:
+          - script: npm install -g @mermaid-js/mermaid-cli
+            displayName: Install Mermaid CLI (mmdc)
+
+      - ${{ each group in parameters.publishGroups }}:
+          - script: |
+              export CONFLUENCE_USERNAME='${{ parameters.confluenceUser }}'
+              export CONFLUENCE_API_KEY='${{ parameters.confluenceApiKey }}'
+              export CONFLUENCE_ORGNAME='${{ parameters.confluenceOrg }}'
+
+              EXCLUDE_ARGS=""
+              ${{ each exc in group.exclude }}
+              EXCLUDE_ARGS="$EXCLUDE_ARGS --exclude '${{ exc }}'"
+              ${{ end }}
+
+              md-to-conf \
+                ${{ join(' ', group.paths) }} \
+                ${{ group.spaceKey }} \
+                -a '${{ group.parent }}' \
+                --label '${{ parameters.repositoryName }}' \
+                --label 'md-generated' \
+                $EXCLUDE_ARGS${{ if eq(parameters.renderMermaid, true) }} \
+                --mermaid${{ end }}
+            workingDirectory: $(Build.SourcesDirectory)
+            displayName: "Publish → ${{ group.spaceKey }} / ${{ group.parent }}"
