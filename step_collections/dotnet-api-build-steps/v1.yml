@@ -116,23 +116,44 @@ steps:
 
       - pwsh: |
           Push-Location $(Agent.TempDirectory);
-          if (Test-Path "ResultFiles") 
+          if (Test-Path "ResultFiles")
           {
               Remove-Item "ResultFiles" -Recurse -Force;
           }
-          mkdir "ResultFiles";
-          $resultFiles = Get-ChildItem -Directory -Filter resultfiles;
+          $null = New-Item -ItemType Directory -Path "ResultFiles";
+          $resultFilesPath = Join-Path (Get-Location) "ResultFiles";
 
+          # Legacy layout (pre-.NET 10 SDK 10.0.300): coverage attachments organized into
+          # {trxname}/In/{machine}/coverage.*.xml alongside the trx file.
+          $copiedLegacy = $false;
           $trxFiles = Get-ChildItem *.trx;
-          foreach ($trxFile in $trxFiles) 
+          foreach ($trxFile in $trxFiles)
           {
               $trxFileName = [System.IO.Path]::GetFileNameWithoutExtension($trxFile);
               $copyPath = [System.IO.Path]::Combine($trxFile.Directory, $trxFileName);
 
               Write-Host "Processing $copyPath";
-              if (Test-Path $copyPath) 
-              {     
-                  Copy-Item $copyPath $resultFiles.FullName -Recurse;
+              if (Test-Path $copyPath)
+              {
+                  Copy-Item $copyPath $resultFilesPath -Recurse;
+                  $copiedLegacy = $true;
+              }
+          }
+
+          # New layout (.NET 10 SDK 10.0.300+ / Microsoft.Testing.Platform):
+          # coverage.*.xml is written directly into a GUID-named sibling folder of the trx.
+          # Only fall back to this if the legacy layout wasn't found, to avoid duplicating
+          # results when both exist.
+          if (-not $copiedLegacy)
+          {
+              $coverageDirs = Get-ChildItem -Directory | Where-Object {
+                  $_.Name -ne 'ResultFiles' -and
+                  (Get-ChildItem -Path $_.FullName -Filter 'coverage.*.xml' -File -ErrorAction SilentlyContinue)
+              };
+              foreach ($dir in $coverageDirs)
+              {
+                  Write-Host "Processing $($dir.FullName)";
+                  Copy-Item $dir.FullName $resultFilesPath -Recurse;
               }
           }
 
