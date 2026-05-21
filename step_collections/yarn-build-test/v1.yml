@@ -78,12 +78,12 @@ steps:
               configMode: "file"
               configFile: ${{ parameters.sonar_config_file }}
 
-  - pwsh: |
-      cd ${{ parameters.workingDir }}
-      yarn install
-    displayName: Yarn install
-
   - ${{ if eq(parameters.useYarn2, true) }}:
+      - pwsh: |
+          corepack enable
+          cd ${{ parameters.workingDir }}
+          yarn install --immutable
+        displayName: Yarn install (Corepack)
       - pwsh: |
           cd ${{ parameters.workingDir }}
           $packageJson = Get-Content -Raw -Path package.json | ConvertFrom-Json
@@ -91,6 +91,10 @@ steps:
           $packageJson | ConvertTo-Json -Depth 100 | Set-Content -Path package.json
         displayName: Set Version (Yarn 2)
   - ${{ if eq(parameters.useYarn2, false) }}:
+      - pwsh: |
+          cd ${{ parameters.workingDir }}
+          yarn install
+        displayName: Yarn install
       - pwsh: |
           cd ${{ parameters.workingDir }}
           yarn version --new-version "$(fullSemVer)" --no-git-tag-version
