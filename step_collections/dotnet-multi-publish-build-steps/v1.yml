@@ -1,0 +1,216 @@
+parameters:
+  # Build Parameters
+  - name: buildConfiguration
+    default: "Release"
+    type: string
+  - name: netCoreVersion
+    type: string
+    default: "8.0.x"
+
+  # The solution (or csproj glob) to build. Building the solution is what
+  # makes the SonarQube/SonarCloud scanner see ALL C# projects as one
+  # Sonar project. Defaults to the first .slnx in the repo root.
+  - name: buildProject
+    type: string
+    default: "**/*.slnx"
+
+  # List of projects to publish, each becomes its own pipeline artifact.
+  # Each entry: { name, project, artifactName }
+  #   name         - short identifier, used for staging subdirectory and display names
+  #   project      - path/glob to the csproj
+  #   artifactName - pipeline artifact name (consumed by the docker job)
+  - name: publishProjects
+    type: object
+    default: []
+
+  # Test Parameters
+  - name: executeTests
+    type: boolean
+    default: false
+  - name: testProjects
+    type: string
+    default: "**/*tests/*.csproj"
+
+  # SonarQube Parameters - a SINGLE scope wraps the solution build,
+  # so all C# code reports under one Sonar project.
+  - name: executeSonar
+    type: boolean
+    default: false
+  - name: sonarEndpointName
+    type: string
+    default: ""
+  - name: sonarProjectKey
+    type: string
+    default: ""
+  - name: sonarProjectName
+    type: string
+    default: ""
+  - name: useSonarCloud
+    type: boolean
+    default: false
+  - name: sonarCloudOrganization
+    type: string
+    default: ""
+  - name: sonarExtraProperties
+    type: string
+    default: ""
+
+  # Hooks
+  - name: prebuildSteps
+    type: stepList
+    default: []
+  - name: preTestSteps
+    type: stepList
+    default: []
+
+  - name: externalFeedCredentials
+    type: string
+    default: "SpydersoftDevelop"
+
+steps:
+  - task: UseDotNet@2
+    displayName: "Use .NET Core sdk"
+    inputs:
+      packageType: sdk
+      version: ${{ parameters.netCoreVersion }}
+
+  - ${{ if eq(parameters.executeSonar, true) }}:
+      - ${{ if eq(parameters.useSonarCloud, true) }}:
+          - task: SonarCloudPrepare@3
+            inputs:
+              SonarCloud: ${{ parameters.sonarEndpointName }}
+              organization: ${{ parameters.sonarCloudOrganization }}
+              scannerMode: "dotnet"
+              projectKey: ${{ parameters.sonarProjectKey }}
+              projectName: ${{ parameters.sonarProjectName }}
+              extraProperties: |
+                sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/**/coverage.opencover.xml"
+                ${{ parameters.sonarExtraProperties }}
+      - ${{ else }}:
+          - task: SonarQubePrepare@5
+            inputs:
+              SonarQube: ${{ parameters.sonarEndpointName }}
+              scannerMode: "MSBuild"
+              projectKey: ${{ parameters.sonarProjectKey }}
+              projectName: ${{ parameters.sonarProjectName }}
+              extraProperties: |
+                sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/**/coverage.opencover.xml"
+                ${{ parameters.sonarExtraProperties }}
+
+  - ${{ parameters.prebuildSteps }}
+
+  - task: DotNetCoreCLI@2
+    displayName: "DotNet restore packages (dotnet restore)"
+    inputs:
+      command: "restore"
+      feedsToUse: config
+      nugetConfigPath: "$(Build.SourcesDirectory)/nuget.config"
+      projects: "**/*.csproj"
+      externalFeedCredentials: ${{ parameters.externalFeedCredentials }}
+
+  - task: DotNetCoreCLI@2
+    displayName: Build solution (dotnet build)
+    inputs:
+      command: build
+      projects: ${{ parameters.buildProject }}
+      arguments: "--no-restore --configuration ${{ parameters.buildConfiguration }} /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)"
+
+  - ${{ if eq(parameters.executeTests, true) }}:
+      - ${{ parameters.preTestSteps }}
+
+      - task: DotNetCoreCLI@2
+        displayName: Test (dotnet test)
+        inputs:
+          command: test
+          projects: ${{ parameters.testProjects }}
+          publishTestResults: false
+          arguments: '--no-restore --configuration ${{ parameters.buildConfiguration }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
+
+      - pwsh: |
+          Push-Location $(Agent.TempDirectory);
+          if (Test-Path "ResultFiles")
+          {
+              Remove-Item "ResultFiles" -Recurse -Force;
+          }
+          $null = New-Item -ItemType Directory -Path "ResultFiles";
+          $resultFilesPath = Join-Path (Get-Location) "ResultFiles";
+
+          # Legacy layout (pre-.NET 10 SDK 10.0.300): coverage attachments organized into
+          # {trxname}/In/{machine}/coverage.*.xml alongside the trx file.
+          $copiedLegacy = $false;
+          $trxFiles = Get-ChildItem *.trx;
+          foreach ($trxFile in $trxFiles)
+          {
+              $trxFileName = [System.IO.Path]::GetFileNameWithoutExtension($trxFile);
+              $copyPath = [System.IO.Path]::Combine($trxFile.Directory, $trxFileName);
+
+              Write-Host "Processing $copyPath";
+              if (Test-Path $copyPath)
+              {
+                  Copy-Item $copyPath $resultFilesPath -Recurse;
+                  $copiedLegacy = $true;
+              }
+          }
+
+          # New layout (.NET 10 SDK 10.0.300+ / Microsoft.Testing.Platform):
+          # coverage.*.xml is written directly into a GUID-named sibling folder of the trx.
+          # Only fall back to this if the legacy layout wasn't found, to avoid duplicating
+          # results when both exist.
+          if (-not $copiedLegacy)
+          {
+              $coverageDirs = Get-ChildItem -Directory | Where-Object {
+                  $_.Name -ne 'ResultFiles' -and
+                  (Get-ChildItem -Path $_.FullName -Filter 'coverage.*.xml' -File -ErrorAction SilentlyContinue)
+              };
+              foreach ($dir in $coverageDirs)
+              {
+                  Write-Host "Processing $($dir.FullName)";
+                  Copy-Item $dir.FullName $resultFilesPath -Recurse;
+              }
+          }
+
+          Pop-Location;
+        displayName: Copy Test Files
+
+      - task: PublishTestResults@2
+        inputs:
+          testResultsFormat: "VSTest"
+          testResultsFiles: "$(Agent.TempDirectory)/*.trx"
+
+      - task: PublishCodeCoverageResults@2
+        condition: true # always try publish coverage results, even if unit tests fail
+        inputs:
+          summaryFileLocation: "$(Agent.TempDirectory)/ResultFiles/**/coverage.cobertura.xml"
+
+  - ${{ if eq(parameters.executeSonar, true) }}:
+      - ${{ if eq(parameters.useSonarCloud, true) }}:
+          - task: SonarCloudAnalyze@3
+            inputs:
+              jdkversion: "JAVA_HOME_17_X64"
+          - task: SonarCloudPublish@3
+            inputs:
+              pollingTimeoutSec: "300"
+      - ${{ else }}:
+          - powershell: |
+              $params = "$env:SONARQUBE_SCANNER_PARAMS" -replace '"sonar.branch.name":"[\w,/,-]*"\,?'
+              Write-Host "##vso[task.setvariable variable=SONARQUBE_SCANNER_PARAMS]$params"
+            displayName: Replace branch name
+          - task: SonarQubeAnalyze@5
+          - task: SonarQubePublish@5
+            inputs:
+              pollingTimeoutSec: "300"
+
+  # Publish each container's csproj to its own staging subdirectory, then
+  # upload as a separate pipeline artifact. --no-build reuses the solution
+  # build above, so each container reflects the exact bits Sonar scanned.
+  - ${{ each pub in parameters.publishProjects }}:
+      - task: DotNetCoreCLI@2
+        displayName: "Publish ${{ pub.name }} (dotnet publish)"
+        inputs:
+          command: publish
+          projects: ${{ pub.project }}
+          arguments: "--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --output $(Build.ArtifactStagingDirectory)/${{ pub.name }} /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)"
+          zipAfterPublish: True
+      - publish: "$(Build.ArtifactStagingDirectory)/${{ pub.name }}"
+        artifact: "${{ pub.artifactName }}"
+        displayName: "Upload ${{ pub.name }} artifact"

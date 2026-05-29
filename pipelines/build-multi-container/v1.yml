@@ -1,0 +1,226 @@
+parameters:
+  # Gitversion
+  - name: gitVersionSpec
+    type: string
+    default: "6.0.x"
+
+  # .NET Build Parameters
+  - name: buildProject
+    type: string
+    default: "**/*.slnx"
+  - name: netCoreVersion
+    type: string
+    default: "8.0.x"
+  - name: buildConfiguration
+    type: string
+    default: Release
+  - name: externalFeedCredentials
+    type: string
+    default: "SpydersoftDevelop"
+
+  # List of .NET projects to publish as deployable artifacts.
+  # Each entry: { name, project, artifactName }
+  - name: publishProjects
+    type: object
+    default: []
+
+  # .NET Test Settings
+  - name: executeTests
+    type: boolean
+    default: false
+  - name: testProjects
+    type: string
+    default: "**/*tests/*.csproj"
+
+  # .NET Sonarqube Settings (one project covering all C# in the solution)
+  - name: executeSonar
+    type: boolean
+    default: false
+  - name: sonarEndpointName
+    type: string
+    default: ""
+  - name: sonarProjectKey
+    type: string
+    default: ""
+  - name: sonarProjectName
+    type: string
+    default: ""
+  - name: useSonarCloud
+    type: boolean
+    default: false
+  - name: sonarCloudOrganization
+    type: string
+    default: ""
+  - name: sonarExtraProperties
+    type: string
+    default: ""
+
+  # UI Build (optional - set uiEnabled: true to include the yarn build/scan)
+  - name: uiEnabled
+    type: boolean
+    default: false
+  - name: uiSourceDirectory
+    type: string
+    default: "src/ui"
+  - name: uiNodeVersion
+    type: string
+    default: "22.x"
+  - name: uiUseYarn2
+    type: boolean
+    default: true
+  - name: uiCodeCoverageFile
+    type: string
+    default: "output/coverage/cobertura-coverage.xml"
+  - name: uiUnitTestFile
+    type: string
+    default: "output/test/junit.xml"
+
+  # UI Sonarqube Settings (one project for the JS/TS code)
+  - name: uiExecuteSonar
+    type: boolean
+    default: false
+  - name: uiSonarEndpointName
+    type: string
+    default: ""
+  - name: uiUseSonarCloud
+    type: boolean
+    default: false
+  - name: uiSonarCloudOrganization
+    type: string
+    default: ""
+  - name: uiSonarConfigFile
+    type: string
+    default: "sonar-project.properties"
+
+  # Docker Settings - one entry per container image to build & push.
+  # Each entry: { dockerImageName, dockerFilePath, artifactName, artifactZipName, imageTagVariableName }
+  #   artifactName / artifactZipName must match a publishProjects entry.
+  #   imageTagVariableName is the helmfile-config variable to bump.
+  - name: buildAndPublishDockerImages
+    type: boolean
+    default: false
+  - name: dockerImages
+    type: object
+    default: []
+  - name: containerRegistryName
+    type: string
+    default: proget_docker
+
+  # Helmfile Config Settings
+  - name: updateHelmConfig
+    type: boolean
+    default: false
+  - name: helmfileRepoName
+    type: string
+    default: ""
+  # Comma-separated tag assignments for the helmfile-config repo.
+  # Example: "identityImageTag=$(build.buildnumber),adminApiImageTag=$(build.buildnumber)"
+  # A single commit updates every listed tag atomically.
+  - name: helmTagsCollection
+    type: string
+    default: ""
+
+  # Hooks
+  - name: prebuildSteps
+    type: stepList
+    default: []
+  - name: preTestSteps
+    type: stepList
+    default: []
+  - name: setupSteps
+    type: stepList
+    default: []
+
+variables:
+  - name: DOCKER_BUILDKIT
+    value: 1
+
+stages:
+  - stage: Build
+    jobs:
+      - job: BuildJob
+        workspace:
+          clean: all
+        pool:
+          name: Default
+          demands: agent.os -equals Linux
+        steps:
+          - checkout: self
+            fetchDepth: 0
+            clean: true
+            persistCredentials: true
+
+          - ${{ parameters.setupSteps }}
+
+          - task: gitversion/setup@3
+            displayName: Setup GitVersion on Agent
+            inputs:
+              versionSpec: ${{ parameters.gitVersionSpec }}
+          - task: gitversion/execute@3
+            displayName: Execute GitVersion to update build number
+
+          - ${{ if eq(parameters.uiEnabled, true) }}:
+              - template: ../../step_collections/yarn-build-test/v1.yml
+                parameters:
+                  nodeVersion: ${{ parameters.uiNodeVersion }}
+                  zipBuildArtifacts: false
+                  workingDir: ${{ parameters.uiSourceDirectory }}
+                  useYarn2: ${{ parameters.uiUseYarn2 }}
+                  executeSonar: ${{ parameters.uiExecuteSonar }}
+                  sonarEndpointName: ${{ parameters.uiSonarEndpointName }}
+                  useSonarCloud: ${{ parameters.uiUseSonarCloud }}
+                  sonarCloudOrganization: ${{ parameters.uiSonarCloudOrganization }}
+                  sonar_config_file: ${{ parameters.uiSonarConfigFile }}
+                  codeCoverageFile: ${{ parameters.uiCodeCoverageFile }}
+                  unitTestFile: ${{ parameters.uiUnitTestFile }}
+
+          - template: ../../step_collections/dotnet-multi-publish-build-steps/v1.yml
+            parameters:
+              buildProject: ${{ parameters.buildProject }}
+              publishProjects: ${{ parameters.publishProjects }}
+              netCoreVersion: ${{ parameters.netCoreVersion }}
+              buildConfiguration: ${{ parameters.buildConfiguration }}
+              externalFeedCredentials: ${{ parameters.externalFeedCredentials }}
+              prebuildSteps: ${{ parameters.prebuildSteps }}
+              preTestSteps: ${{ parameters.preTestSteps }}
+              executeSonar: ${{ parameters.executeSonar }}
+              sonarEndpointName: ${{ parameters.sonarEndpointName }}
+              sonarProjectKey: ${{ parameters.sonarProjectKey }}
+              sonarProjectName: ${{ parameters.sonarProjectName }}
+              executeTests: ${{ parameters.executeTests }}
+              testProjects: ${{ parameters.testProjects }}
+              useSonarCloud: ${{ parameters.useSonarCloud }}
+              sonarCloudOrganization: ${{ parameters.sonarCloudOrganization }}
+              sonarExtraProperties: ${{ parameters.sonarExtraProperties }}
+
+  - ${{ if eq(parameters.buildAndPublishDockerImages, true) }}:
+      - stage: docker_publish
+        displayName: Create Docker Images
+        jobs:
+          - ${{ each img in parameters.dockerImages }}:
+              - template: ../../jobs/build-docker-image/v1.yml
+                parameters:
+                  dockerImageName: ${{ img.dockerImageName }}
+                  containerRegistryName: ${{ parameters.containerRegistryName }}
+                  artifactName: ${{ img.artifactName }}
+                  artifactZipName: ${{ img.artifactZipName }}
+                  dockerFilePath: ${{ img.dockerFilePath }}
+
+  - ${{ if eq(parameters.updateHelmConfig, true) }}:
+      - stage: updateHelmConfig
+        displayName: Update Helm Config Repository
+        dependsOn:
+          - docker_publish
+        jobs:
+          - job: updateHelmConfigJob
+            pool:
+              name: Default
+            workspace:
+              clean: all
+            steps:
+              - template: ../../step_collections/process-cicd-script/v1.yml
+                parameters:
+                  repositoryResource: ${{ parameters.helmfileRepoName }}
+                  branchName: $(Build.SourceBranch)
+                  tagsCollection: ${{ parameters.helmTagsCollection }}
+                  commitMessage: Updated image tags to $(build.buildnumber)
