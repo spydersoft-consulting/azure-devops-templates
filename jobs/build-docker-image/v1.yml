@@ -19,9 +19,17 @@ parameters:
   - name: prebuildSteps
     type: stepList
     default: []
+  # Job identity - override these when invoking this job more than once
+  # within the same stage (e.g. building several images side by side).
+  - name: jobName
+    type: string
+    default: create_docker_image_and_publish
+  - name: jobDisplayName
+    type: string
+    default: Create Docker Image and Publish
 jobs:
-  - job: create_docker_image_and_publish
-    displayName: Create Docker Image and Publish
+  - job: ${{ parameters.jobName }}
+    displayName: ${{ parameters.jobDisplayName }}
     pool:
       name: Default
     steps:

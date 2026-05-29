@@ -93,9 +93,10 @@ parameters:
     default: "sonar-project.properties"
 
   # Docker Settings - one entry per container image to build & push.
-  # Each entry: { dockerImageName, dockerFilePath, artifactName, artifactZipName, imageTagVariableName }
+  # Each entry: { name, dockerImageName, dockerFilePath, artifactName, artifactZipName, imageTagVariableName }
+  #   name                  - unique job identifier within docker_publish stage (alphanumeric + underscore).
   #   artifactName / artifactZipName must match a publishProjects entry.
-  #   imageTagVariableName is the helmfile-config variable to bump.
+  #   imageTagVariableName  - the helmfile-config variable to bump.
   - name: buildAndPublishDockerImages
     type: boolean
     default: false
@@ -200,6 +201,8 @@ stages:
           - ${{ each img in parameters.dockerImages }}:
               - template: ../../jobs/build-docker-image/v1.yml
                 parameters:
+                  jobName: build_${{ img.name }}
+                  jobDisplayName: "Build & Push ${{ img.dockerImageName }}"
                   dockerImageName: ${{ img.dockerImageName }}
                   containerRegistryName: ${{ parameters.containerRegistryName }}
                   artifactName: ${{ img.artifactName }}
