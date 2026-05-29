@@ -208,6 +208,10 @@ steps:
         displayName: "Publish ${{ pub.name }} (dotnet publish)"
         inputs:
           command: publish
+          # publishWebProjects defaults to true and, when true, the task ignores
+          # the `projects` input and auto-globs for web-SDK csprojs. We need our
+          # explicit per-image project to win, so disable it.
+          publishWebProjects: false
           projects: ${{ pub.project }}
           arguments: "--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --output $(Build.ArtifactStagingDirectory)/${{ pub.name }} /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)"
           zipAfterPublish: True
