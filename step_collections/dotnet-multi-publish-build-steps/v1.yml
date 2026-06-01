@@ -124,7 +124,17 @@ steps:
           command: test
           projects: ${{ parameters.testProjects }}
           publishTestResults: false
-          arguments: '--no-restore --configuration ${{ parameters.buildConfiguration }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
+          # Run --no-build: the solution build above already compiled the test
+          # projects (they are part of buildProject, same assumption the
+          # --no-build publish below relies on). Rebuilding here would happen
+          # WITHOUT the version props, regenerating AssemblyInfo at the default
+          # 1.0.0.0 and clobbering the test project's transitive deps (e.g.
+          # Core/Data) in the shared bin; a --no-build publish of an app outside
+          # the test graph (e.g. an API) would then ship those deps at 1.0.0.0
+          # next to a correctly-versioned entry assembly and fail to load them
+          # at runtime. --no-build keeps every assembly at the single version
+          # stamped by the solution build (and is faster).
+          arguments: '--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
 
       - pwsh: |
           Push-Location $(Agent.TempDirectory);
@@ -203,6 +213,11 @@ steps:
   # Publish each container's csproj to its own staging subdirectory, then
   # upload as a separate pipeline artifact. --no-build reuses the solution
   # build above, so each container reflects the exact bits Sonar scanned.
+  # This depends on NOTHING recompiling after the versioned solution build
+  # (the test step above is also --no-build) so every assembly carries the
+  # single AssemblyVersion stamped by that build; otherwise a recompile
+  # without the version props would stamp deps at 1.0.0.0 and the app would
+  # fail to load them at runtime (FileNotFoundException: '<dep>, Version=...').
   - ${{ each pub in parameters.publishProjects }}:
       - task: DotNetCoreCLI@2
         displayName: "Publish ${{ pub.name }} (dotnet publish)"
