@@ -121,6 +121,21 @@ parameters:
     type: string
     default: ""
 
+  # Stage wiring. These let a consumer splice externally-defined stages (e.g. an
+  # integration-test stage from another template) into the serial chain by
+  # re-pointing what the built-in stages wait on. Defaults reproduce the
+  # standalone order: Build -> docker_publish -> updateHelmConfig.
+  # Example (gate images + deploy on a separately-composed `integration_tests`
+  # stage): dockerPublishDependsOn: [integration_tests]
+  - name: dockerPublishDependsOn
+    type: object
+    default:
+      - Build
+  - name: updateHelmConfigDependsOn
+    type: object
+    default:
+      - docker_publish
+
   # Hooks
   - name: prebuildSteps
     type: stepList
@@ -131,10 +146,6 @@ parameters:
   - name: setupSteps
     type: stepList
     default: []
-
-variables:
-  - name: DOCKER_BUILDKIT
-    value: 1
 
 stages:
   - stage: Build
@@ -197,6 +208,10 @@ stages:
   - ${{ if eq(parameters.buildAndPublishDockerImages, true) }}:
       - stage: docker_publish
         displayName: Create Docker Images
+        dependsOn: ${{ parameters.dockerPublishDependsOn }}
+        variables:
+          - name: DOCKER_BUILDKIT
+            value: 1
         jobs:
           - ${{ each img in parameters.dockerImages }}:
               - template: ../../jobs/build-docker-image/v1.yml
@@ -212,8 +227,7 @@ stages:
   - ${{ if eq(parameters.updateHelmConfig, true) }}:
       - stage: updateHelmConfig
         displayName: Update Helm Config Repository
-        dependsOn:
-          - docker_publish
+        dependsOn: ${{ parameters.updateHelmConfigDependsOn }}
         jobs:
           - job: updateHelmConfigJob
             pool:

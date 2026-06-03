@@ -1,0 +1,138 @@
+## Integration / E2E test stage (Playwright).
+##
+## Drop this into a pipeline's `stages:` list alongside a build stage to run
+## one or more Playwright suites. Each suite is expected to boot whatever stack
+## it needs itself (e.g. via Playwright's `webServer`), so the stage only needs
+## the .NET SDK, Node, and a container runtime (Podman/Docker) on the agent.
+##
+## By default the stage declares `dependsOn: []` so it runs in PARALLEL with
+## the rest of the pipeline rather than gating on the build. Set
+## `dependsOn` to gate it behind specific stages instead.
+parameters:
+  - name: stageName
+    type: string
+    default: integration_tests
+  - name: displayName
+    type: string
+    default: Integration & E2E Tests
+  # Stages this one waits on. Default [] = run in parallel with everything else.
+  - name: dependsOn
+    type: object
+    default: []
+  - name: condition
+    type: string
+    default: ""
+
+  - name: netCoreVersion
+    type: string
+    default: "8.0.x"
+  - name: nodeVersion
+    type: string
+    default: "22.x"
+  - name: pool
+    type: string
+    default: Default
+  - name: timeoutInMinutes
+    type: number
+    default: 30
+
+  # Steps run once before any suite (after .NET + Node are set up). Use this to
+  # restore deps a suite's dev server needs but that aren't part of the suite's
+  # own package.json (e.g. a sibling SPA the e2e suite spawns).
+  - name: setupSteps
+    type: stepList
+    default: []
+
+  # One entry per Playwright suite:
+  #   name             - display name + test-run title (must be unique).
+  #   workingDirectory - folder with package.json + playwright.config
+  #                      (relative to the repo checkout).
+  #   installCommand   - optional; defaults to 'npm ci'.
+  #   installBrowsers  - optional bool; defaults to true. Set false for
+  #                      API-only suites that use Playwright's request context
+  #                      and never launch a browser.
+  - name: suites
+    type: object
+    default: []
+
+stages:
+  - stage: ${{ parameters.stageName }}
+    displayName: ${{ parameters.displayName }}
+    dependsOn: ${{ parameters.dependsOn }}
+    ${{ if ne(parameters.condition, '') }}:
+      condition: ${{ parameters.condition }}
+    jobs:
+      - job: playwright_suites
+        displayName: Playwright Suites
+        timeoutInMinutes: ${{ parameters.timeoutInMinutes }}
+        workspace:
+          clean: all
+        pool:
+          name: ${{ parameters.pool }}
+          demands: agent.os -equals Linux
+        steps:
+          - checkout: self
+            fetchDepth: 0
+            clean: true
+
+          - task: UseDotNet@2
+            displayName: Use .NET SDK ${{ parameters.netCoreVersion }}
+            inputs:
+              packageType: sdk
+              version: ${{ parameters.netCoreVersion }}
+
+          - task: NodeTool@0
+            displayName: Use Node ${{ parameters.nodeVersion }}
+            inputs:
+              versionSource: "spec"
+              versionSpec: ${{ parameters.nodeVersion }}
+
+          - ${{ parameters.setupSteps }}
+
+          # Suites run sequentially in this single job: they typically bind the
+          # same pinned ports, so overlapping them on one agent would clash. The
+          # stage-level parallelism (dependsOn) is where the wall-clock win is.
+          - ${{ each suite in parameters.suites }}:
+              - task: Bash@3
+                displayName: "Install deps: ${{ suite.name }}"
+                inputs:
+                  targetType: inline
+                  workingDirectory: ${{ suite.workingDirectory }}
+                  script: |
+                    set -euo pipefail
+                    ${{ coalesce(suite.installCommand, 'npm ci') }}
+
+              - ${{ if ne(suite.installBrowsers, false) }}:
+                  - task: Bash@3
+                    displayName: "Install Playwright browser: ${{ suite.name }}"
+                    inputs:
+                      targetType: inline
+                      workingDirectory: ${{ suite.workingDirectory }}
+                      # System libs are expected to be present on the
+                      # self-hosted agent; add --with-deps here (needs sudo)
+                      # if running on a fresh image.
+                      script: |
+                        set -euo pipefail
+                        npx playwright install chromium
+
+              - task: Bash@3
+                displayName: "Run: ${{ suite.name }}"
+                env:
+                  CI: "true"
+                  PLAYWRIGHT_JUNIT_OUTPUT_NAME: playwright-junit.xml
+                inputs:
+                  targetType: inline
+                  workingDirectory: ${{ suite.workingDirectory }}
+                  script: |
+                    set -euo pipefail
+                    npx playwright test --reporter=junit,html
+
+              - task: PublishTestResults@2
+                displayName: "Publish results: ${{ suite.name }}"
+                condition: succeededOrFailed()
+                inputs:
+                  testResultsFormat: JUnit
+                  testResultsFiles: playwright-junit.xml
+                  searchFolder: ${{ suite.workingDirectory }}
+                  testRunTitle: ${{ suite.name }}
+                  failTaskOnFailedTests: true
