@@ -81,7 +81,7 @@ stages:
               packageType: sdk
               version: ${{ parameters.netCoreVersion }}
 
-          - task: NodeTool@0
+          - task: UseNodeV1@1
             displayName: Use Node ${{ parameters.nodeVersion }}
             inputs:
               versionSource: "spec"

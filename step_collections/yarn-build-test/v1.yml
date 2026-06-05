@@ -52,7 +52,7 @@ parameters:
 steps:
   - ${{ parameters.preBuildSteps }}
 
-  - task: NodeTool@0
+  - task: UseNodeV1@1
     displayName: Set Node Version Explicitly
     condition: ne('${{ parameters.nodeVersion }}', '')
     inputs:
