@@ -52,13 +52,14 @@ parameters:
 steps:
   - ${{ parameters.preBuildSteps }}
 
-  - task: UseNode@1
+  - bash: |
+      export NVM_DIR="$HOME/.nvm"
+      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+      nvm install "${{ parameters.nodeVersion }}" --no-progress
+      nvm use "${{ parameters.nodeVersion }}"
+      echo "##vso[task.prependpath]$(dirname $(nvm which current))"
     displayName: Set Node Version Explicitly
     condition: ne('${{ parameters.nodeVersion }}', '')
-    inputs:
-      versionSource: "spec"
-      versionSpec: "${{ parameters.nodeVersion }}" # 16.19.0, 18.14.1, etc
-      checkLatest: true
 
   - ${{ if eq(parameters.executeSonar, true) }}:
       - ${{ if eq(parameters.useSonarCloud, true) }}:
