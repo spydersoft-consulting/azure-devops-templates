@@ -80,6 +80,7 @@ steps:
 
   - ${{ if eq(parameters.useYarn2, true) }}:
       - pwsh: |
+          npm install -g corepack
           corepack enable
           cd ${{ parameters.workingDir }}
           yarn install --immutable
