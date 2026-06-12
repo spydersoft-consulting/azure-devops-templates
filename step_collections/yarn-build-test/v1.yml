@@ -58,6 +58,7 @@ steps:
     inputs:
       versionSource: "spec"
       versionSpec: "${{ parameters.nodeVersion }}" # 16.19.0, 18.14.1, etc
+      checkLatest: true
 
   - ${{ if eq(parameters.executeSonar, true) }}:
       - ${{ if eq(parameters.useSonarCloud, true) }}:
