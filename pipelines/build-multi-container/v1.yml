@@ -24,6 +24,22 @@ parameters:
     type: object
     default: []
 
+  # NuGet Pack / Publish (optional)
+  # Set publishToNuget: true to pack and push NuGet packages from the same
+  # build job. The pack runs --no-build so it reuses the solution build above.
+  - name: publishToNuget
+    type: boolean
+    default: false
+  - name: projectsToPack
+    type: string
+    default: ""
+  - name: externalPublishUrl
+    type: string
+    default: ""
+  - name: externalPublishApiKey
+    type: string
+    default: ""
+
   # .NET Test Settings
   - name: executeTests
     type: boolean
@@ -204,6 +220,28 @@ stages:
               useSonarCloud: ${{ parameters.useSonarCloud }}
               sonarCloudOrganization: ${{ parameters.sonarCloudOrganization }}
               sonarExtraProperties: ${{ parameters.sonarExtraProperties }}
+
+          - ${{ if eq(parameters.publishToNuget, true) }}:
+              - task: DotNetCoreCLI@2
+                displayName: Pack NuGet packages
+                inputs:
+                  command: pack
+                  packagesToPack: ${{ parameters.projectsToPack }}
+                  arguments: "--no-restore --no-build --configuration ${{ parameters.buildConfiguration }} --output $(Build.ArtifactStagingDirectory)/nuget"
+                  versioningScheme: byEnvVar
+                  versionEnvVar: "GitVersion.SemVer"
+              - publish: "$(Build.ArtifactStagingDirectory)/nuget"
+                artifact: "nuget-packages"
+                displayName: Upload NuGet packages artifact
+              - task: DotNetCoreCLI@2
+                displayName: Push NuGet packages
+                inputs:
+                  command: custom
+                  custom: nuget
+                  arguments: >
+                    push $(Build.ArtifactStagingDirectory)/nuget/*.nupkg
+                    -s ${{ parameters.externalPublishUrl }}
+                    -k ${{ parameters.externalPublishApiKey }}
 
   - ${{ if eq(parameters.buildAndPublishDockerImages, true) }}:
       - stage: docker_publish
