@@ -227,7 +227,8 @@ stages:
                 inputs:
                   command: pack
                   packagesToPack: ${{ parameters.projectsToPack }}
-                  arguments: "--no-restore --no-build --configuration ${{ parameters.buildConfiguration }} --output $(Build.ArtifactStagingDirectory)/nuget"
+                  packDirectory: "$(Build.ArtifactStagingDirectory)/nuget"
+                  arguments: "--no-restore --no-build --configuration ${{ parameters.buildConfiguration }}"
                   versioningScheme: byEnvVar
                   versionEnvVar: "GitVersion.SemVer"
               - publish: "$(Build.ArtifactStagingDirectory)/nuget"
