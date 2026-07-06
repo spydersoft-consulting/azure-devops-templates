@@ -33,4 +33,10 @@ steps:
     inputs:
       targetType: "filePath" # Optional. Options: filePath, inline
       filePath: scripts/process-cicd.ps1 # Required when targetType == FilePath
-      arguments: -branchName "${{ parameters.branchName }}" -tags ${{ parameters.tagsCollection }} -message "${{ parameters.commitMessage }}" # Optional
+      # -tags binds to a PowerShell [string[]] param, which splits raw CLI
+      # arguments on whitespace, not commas. tagsCollection is documented as
+      # comma-joined ("tokenservice=1.1.1,datamanager=3.3.3"), so replace
+      # commas with spaces here -- otherwise a multi-tag collection binds as
+      # a single malformed array element instead of one element per tag.
+      # A single tag has no comma, so this is a no-op for existing consumers.
+      arguments: -branchName "${{ parameters.branchName }}" -tags ${{ replace(parameters.tagsCollection, ',', ' ') }} -message "${{ parameters.commitMessage }}" # Optional
