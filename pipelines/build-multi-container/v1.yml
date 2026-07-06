@@ -123,6 +123,19 @@ parameters:
     type: string
     default: proget_docker
 
+  # Helm Chart Settings - one entry per chart to package & push as an OCI
+  # artifact. Each entry: { name, chartPath }, where name matches Chart.yaml's
+  # own `name` and chartPath is the repo-relative path to the chart directory.
+  - name: buildAndPublishHelmCharts
+    type: boolean
+    default: false
+  - name: helmCharts
+    type: object
+    default: []
+  - name: helmChartRegistry
+    type: string
+    default: ghcr.io/spydersoft-consulting/charts
+
   # Helmfile Config Settings
   - name: updateHelmConfig
     type: boolean
@@ -143,7 +156,16 @@ parameters:
   # standalone order: Build -> docker_publish -> updateHelmConfig.
   # Example (gate images + deploy on a separately-composed `integration_tests`
   # stage): dockerPublishDependsOn: [integration_tests]
+  # If buildAndPublishHelmCharts is also enabled, pass
+  # updateHelmConfigDependsOn: [docker_publish, chart_publish] explicitly --
+  # docker_publish and chart_publish both depend on Build and run in
+  # parallel, independent of one another, so there's no single default that
+  # covers both without the caller opting in.
   - name: dockerPublishDependsOn
+    type: object
+    default:
+      - Build
+  - name: chartPublishDependsOn
     type: object
     default:
       - Build
@@ -262,6 +284,22 @@ stages:
                   artifactName: ${{ img.artifactName }}
                   artifactZipName: ${{ img.artifactZipName }}
                   dockerFilePath: ${{ img.dockerFilePath }}
+
+  - ${{ if eq(parameters.buildAndPublishHelmCharts, true) }}:
+      - stage: chart_publish
+        displayName: Publish Helm Charts
+        dependsOn: ${{ parameters.chartPublishDependsOn }}
+        jobs:
+          - ${{ each chart in parameters.helmCharts }}:
+              - template: ../../jobs/publish-helm-chart/v1.yml
+                parameters:
+                  jobName: publish_${{ chart.name }}
+                  jobDisplayName: "Publish ${{ chart.name }} chart"
+                  chartName: ${{ chart.name }}
+                  chartPath: ${{ chart.chartPath }}
+                  chartVersion: $(build.buildnumber)
+                  ociRegistry: ${{ parameters.helmChartRegistry }}
+                  containerRegistryName: ${{ parameters.containerRegistryName }}
 
   - ${{ if eq(parameters.updateHelmConfig, true) }}:
       - stage: updateHelmConfig
