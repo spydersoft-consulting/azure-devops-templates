@@ -16,9 +16,26 @@ parameters:
     type: string
     default: "0.162.0"
 
+  # Stage wiring for callers composing multiple stages of this template in
+  # one pipeline (e.g. a combined test -> stage -> production deploy with a
+  # runtime condition gating whether stage/production even queue). Omitted
+  # by default so existing single-stage-per-call consumers keep Azure
+  # Pipelines' implicit "depends on the previous stage in the file"
+  # behavior unchanged -- passing a non-empty dependsOn is what opts a
+  # caller into explicit wiring.
+  - name: dependsOn
+    type: object
+    default: []
+  - name: condition
+    type: string
+    default: succeeded()
+
 stages:
   - stage: generate_commit_manifest_${{ parameters.environmentName }}
     displayName: Deploy To ${{ parameters.environmentName }} Environment
+    ${{ if gt(length(parameters.dependsOn), 0) }}:
+      dependsOn: ${{ parameters.dependsOn }}
+    condition: ${{ parameters.condition }}
     jobs:
       - deployment: deploy_marker_${{ parameters.environmentName }}
         displayName: Deployment Step
@@ -44,9 +61,17 @@ stages:
               helmfileDirectory: "${{ parameters.helmfileDirectory }}"
               pregenerateSteps: ${{ parameters.pregenerateSteps }}
               helmfileVersion: ${{ parameters.helmfileVersion }}
+      # Waits on deploy_marker (the environment-bound deployment job) as well
+      # as generate_manifests -- deploy_marker is where an Environment's
+      # approval checks actually pause the run. Without this dependency, an
+      # approval check on environmentName would be purely decorative: this
+      # job (the one that actually commits rendered manifests, which is what
+      # triggers Argo to sync) would run in parallel with deploy_marker and
+      # complete regardless of whether the check had been approved yet.
       - job: commit_changes_${{ parameters.environmentName }}
         dependsOn:
           - generate_manifests_${{ parameters.environmentName }}
+          - deploy_marker_${{ parameters.environmentName }}
         pool:
           name: Default
         steps:
