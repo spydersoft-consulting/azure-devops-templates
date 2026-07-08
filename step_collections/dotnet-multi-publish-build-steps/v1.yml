@@ -67,6 +67,13 @@ parameters:
     type: string
     default: "SpydersoftDevelop"
 
+  # Path to nuget.config. Defaults to the repo root, but some repos keep it
+  # elsewhere (e.g. a monorepo where nuget.config lives under a shared src/
+  # directory rather than the checkout root).
+  - name: nugetConfigPath
+    type: string
+    default: "$(Build.SourcesDirectory)/nuget.config"
+
 steps:
   - task: UseDotNet@2
     displayName: "Use .NET Core sdk"
@@ -104,7 +111,7 @@ steps:
     inputs:
       command: "restore"
       feedsToUse: config
-      nugetConfigPath: "$(Build.SourcesDirectory)/nuget.config"
+      nugetConfigPath: ${{ parameters.nugetConfigPath }}
       projects: "**/*.csproj"
       externalFeedCredentials: ${{ parameters.externalFeedCredentials }}
 
