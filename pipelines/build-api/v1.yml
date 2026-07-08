@@ -19,6 +19,9 @@ parameters:
   - name: externalFeedCredentials
     type: string
     default: "SpydersoftDevelop"
+  - name: nugetConfigPath
+    type: string
+    default: "$(Build.SourcesDirectory)/nuget.config"
 
   # API Test Settings
   - name: executeTests
@@ -125,6 +128,7 @@ stages:
               netCoreVersion: ${{ parameters.netCoreVersion }}
               buildConfiguration: ${{ parameters.buildConfiguration }}
               externalFeedCredentials: ${{ parameters.externalFeedCredentials }}
+              nugetConfigPath: ${{ parameters.nugetConfigPath }}
               prebuildSteps: ${{ parameters.prebuildSteps }}
               preTestSteps: ${{ parameters.preTestSteps }}
               executeSonar: ${{ parameters.executeSonar }}

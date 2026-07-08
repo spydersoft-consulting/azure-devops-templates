@@ -18,6 +18,13 @@ parameters:
     type: string
     default: "SpydersoftDevelop"
 
+  # Path to nuget.config. Defaults to the repo root; override for repos
+  # that keep it elsewhere (e.g. a monorepo where it lives under a shared
+  # src/ directory rather than the checkout root).
+  - name: nugetConfigPath
+    type: string
+    default: "$(Build.SourcesDirectory)/nuget.config"
+
   # List of .NET projects to publish as deployable artifacts.
   # Each entry: { name, project, artifactName }
   - name: publishProjects
@@ -231,6 +238,7 @@ stages:
               netCoreVersion: ${{ parameters.netCoreVersion }}
               buildConfiguration: ${{ parameters.buildConfiguration }}
               externalFeedCredentials: ${{ parameters.externalFeedCredentials }}
+              nugetConfigPath: ${{ parameters.nugetConfigPath }}
               prebuildSteps: ${{ parameters.prebuildSteps }}
               preTestSteps: ${{ parameters.preTestSteps }}
               executeSonar: ${{ parameters.executeSonar }}
