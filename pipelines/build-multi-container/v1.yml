@@ -301,7 +301,14 @@ stages:
           - ${{ each chart in parameters.helmCharts }}:
               - template: ../../jobs/publish-helm-chart/v1.yml
                 parameters:
-                  jobName: publish_${{ chart.name }}
+                  # Job names may only contain alphanumerics and '_' -- chart
+                  # names commonly contain hyphens (e.g. "filestore-api",
+                  # matching the OCI publish path other repos reference), so
+                  # sanitize for the job identifier only. chartName below
+                  # stays the real, unsanitized name: it drives the actual
+                  # packaged .tgz filename and OCI push path, which must
+                  # match Chart.yaml's own name.
+                  jobName: publish_${{ replace(chart.name, '-', '_') }}
                   jobDisplayName: "Publish ${{ chart.name }} chart"
                   chartName: ${{ chart.name }}
                   chartPath: ${{ chart.chartPath }}
