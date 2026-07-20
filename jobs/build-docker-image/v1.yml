@@ -27,11 +27,23 @@ parameters:
   - name: jobDisplayName
     type: string
     default: Create Docker Image and Publish
+  # Pool selection: set vmImage to run on a Microsoft-hosted agent (e.g.
+  # "ubuntu-latest"); leave it empty (the default) to use the self-hosted
+  # poolName pool instead. vmImage takes precedence when both are set.
+  - name: poolName
+    type: string
+    default: Default
+  - name: vmImage
+    type: string
+    default: ""
 jobs:
   - job: ${{ parameters.jobName }}
     displayName: ${{ parameters.jobDisplayName }}
     pool:
-      name: Default
+      ${{ if ne(parameters.vmImage, '') }}:
+        vmImage: ${{ parameters.vmImage }}
+      ${{ else }}:
+        name: ${{ parameters.poolName }}
     steps:
       - task: DownloadPipelineArtifact@2
         inputs:

@@ -30,6 +30,16 @@ parameters:
     type: string
     default: succeeded()
 
+  # Pool selection: set vmImage to run on a Microsoft-hosted agent (e.g.
+  # "ubuntu-latest"); leave it empty (the default) to use the self-hosted
+  # poolName pool instead. vmImage takes precedence when both are set.
+  - name: poolName
+    type: string
+    default: Default
+  - name: vmImage
+    type: string
+    default: ""
+
 stages:
   - stage: generate_commit_manifest_${{ parameters.environmentName }}
     displayName: Deploy To ${{ parameters.environmentName }} Environment
@@ -41,7 +51,10 @@ stages:
         displayName: Deployment Step
         environment: ${{ parameters.environmentName }}
         pool:
-          name: Default
+          ${{ if ne(parameters.vmImage, '') }}:
+            vmImage: ${{ parameters.vmImage }}
+          ${{ else }}:
+            name: ${{ parameters.poolName }}
         strategy:
           runOnce:
             deploy:
@@ -50,7 +63,10 @@ stages:
                     echo "Deploying to ${{ parameters.environmentName }}"
       - job: generate_manifests_${{ parameters.environmentName }}
         pool:
-          name: Default
+          ${{ if ne(parameters.vmImage, '') }}:
+            vmImage: ${{ parameters.vmImage }}
+          ${{ else }}:
+            name: ${{ parameters.poolName }}
         steps:
           - checkout: self
             clean: true
@@ -73,7 +89,10 @@ stages:
           - generate_manifests_${{ parameters.environmentName }}
           - deploy_marker_${{ parameters.environmentName }}
         pool:
-          name: Default
+          ${{ if ne(parameters.vmImage, '') }}:
+            vmImage: ${{ parameters.vmImage }}
+          ${{ else }}:
+            name: ${{ parameters.poolName }}
         steps:
           - template: ../../step_collections/commit-to-gitops-repo/v1.yml@templates
             parameters:

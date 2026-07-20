@@ -93,6 +93,16 @@ parameters:
     type: stepList
     default: []
 
+  # Pool selection: set vmImage to run on a Microsoft-hosted agent (e.g.
+  # "ubuntu-latest"); leave it empty (the default) to use the self-hosted
+  # poolName pool instead. vmImage takes precedence when both are set.
+  - name: poolName
+    type: string
+    default: Default
+  - name: vmImage
+    type: string
+    default: ""
+
 variables:
   - name: DOCKER_BUILDKIT
     value: 1
@@ -104,8 +114,11 @@ stages:
         workspace:
           clean: all
         pool:
-          name: Default
-          demands: agent.os -equals Linux
+          ${{ if ne(parameters.vmImage, '') }}:
+            vmImage: ${{ parameters.vmImage }}
+          ${{ else }}:
+            name: ${{ parameters.poolName }}
+            demands: agent.os -equals Linux
         steps:
           - checkout: self
             fetchDepth: 0
@@ -155,6 +168,8 @@ stages:
               artifactName: "${{ parameters.artifactName }}"
               artifactZipName: ${{ parameters.artifactZipName }}
               dockerFilePath: ${{ parameters.dockerFilePath }}
+              poolName: ${{ parameters.poolName }}
+              vmImage: ${{ parameters.vmImage }}
 
   - ${{ if eq(parameters.updateHelmConfig, true) }}:
       - stage: updateHelmConfig
@@ -164,7 +179,10 @@ stages:
         jobs:
           - job: updateHelmConfigJob
             pool:
-              name: Default
+              ${{ if ne(parameters.vmImage, '') }}:
+                vmImage: ${{ parameters.vmImage }}
+              ${{ else }}:
+                name: ${{ parameters.poolName }}
             workspace:
               clean: all
             steps:
