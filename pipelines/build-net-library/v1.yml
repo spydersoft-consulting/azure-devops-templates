@@ -31,7 +31,7 @@ parameters:
     default: ""
   - name: externalNugetFeed
     type: string
-    default: "SpydersoftDevelop"
+    default: "SpydersoftGithub"
 
   # Nuget Publish
   - name: publishToNuget

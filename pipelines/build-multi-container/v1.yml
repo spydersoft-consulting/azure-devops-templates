@@ -16,7 +16,7 @@ parameters:
     default: Release
   - name: externalFeedCredentials
     type: string
-    default: "SpydersoftDevelop"
+    default: "SpydersoftGithub"
 
   # Path to nuget.config. Defaults to the repo root; override for repos
   # that keep it elsewhere (e.g. a monorepo where it lives under a shared

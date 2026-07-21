@@ -17,7 +17,7 @@ parameters:
     default: Release
   - name: externalFeedCredentials
     type: string
-    default: "SpydersoftDevelop"
+    default: "SpydersoftGithub"
   - name: nugetConfigPath
     type: string
     default: "$(Build.SourcesDirectory)/nuget.config"
