@@ -29,6 +29,13 @@ parameters:
   - name: nodeVersion
     type: string
     default: "22.x"
+  # Service connection used to authenticate `dotnet`/`nuget` restores against
+  # private feeds (e.g. GitHub Packages) for suites whose webServer boots a
+  # .NET app (`dotnet run`) and triggers an implicit restore. Empty (the
+  # default) skips authentication for repos that only need nuget.org.
+  - name: externalFeedCredentials
+    type: string
+    default: ""
   # Pool selection: set vmImage to run on a Microsoft-hosted agent (e.g.
   # "ubuntu-latest"); leave it empty (the default) to use the self-hosted
   # poolName pool instead. vmImage takes precedence when both are set.
@@ -95,6 +102,18 @@ stages:
             inputs:
               versionSource: "spec"
               versionSpec: ${{ parameters.nodeVersion }}
+
+          # This job checks out fresh and never runs a DotNetCoreCLI@2 restore
+          # task of its own, so the credential injection those tasks normally
+          # provide isn't present here. Any suite whose webServer implicitly
+          # restores (e.g. `dotnet run`) needs its own authentication against
+          # private feeds -- NuGetAuthenticate populates the ambient NuGet
+          # credential provider for the rest of the job.
+          - ${{ if ne(parameters.externalFeedCredentials, '') }}:
+              - task: NuGetAuthenticate@1
+                displayName: Authenticate to NuGet feeds
+                inputs:
+                  nuGetServiceConnections: ${{ parameters.externalFeedCredentials }}
 
           - ${{ parameters.setupSteps }}
 
