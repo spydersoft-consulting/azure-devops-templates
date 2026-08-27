@@ -43,6 +43,11 @@ parameters:
   - name: externalPublishApiKey
     type: string
     default: ""
+  # Optional additional feeds to publish the same packages to (e.g. nuget.org
+  # alongside a primary GitHub Packages feed). Each entry: { name, url, apiKey }.
+  - name: additionalNugetPublish
+    type: object
+    default: []
 
   # Unit Testing
   - name: executeTests
@@ -287,3 +292,12 @@ jobs:
               custom: nuget
               arguments: >
                 push $(Build.ArtifactStagingDirectory)/*.nupkg -s ${{ parameters.externalPublishUrl }} -k ${{ parameters.externalPublishApiKey }}
+
+          - ${{ each feed in parameters.additionalNugetPublish }}:
+              - task: DotNetCoreCLI@2
+                displayName: "Publish to ${{ feed.name }}"
+                inputs:
+                  command: custom
+                  custom: nuget
+                  arguments: >
+                    push $(Build.ArtifactStagingDirectory)/*.nupkg -s ${{ feed.url }} -k ${{ feed.apiKey }} --skip-duplicate

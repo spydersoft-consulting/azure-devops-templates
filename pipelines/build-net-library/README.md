@@ -48,6 +48,9 @@ extends:
 | `sonarProjectName`       | string   | SonarQube/SonarCloud Project Name. Required when `executeSonar=true`.                                    |                                                 |
 | `preBuildSteps`          | stepList | Steps executed immediately before `dotnet restore`. See [Build Order](#build-order).                     | `[]`                                            |
 | `preTestSteps`           | stepList | Steps executed immediately before `dotnet restore`. See [Build Order](#build-order).                     | `[]`                                            |
+| `externalPublishUrl`     | string   | Primary NuGet feed URL to push packages to when `publishToNuget=true`.                                   |                                                 |
+| `externalPublishApiKey`  | string   | API key for `externalPublishUrl`.                                                                        |                                                 |
+| `additionalNugetPublish` | object   | Extra feeds to also push the same packages to (e.g. nuget.org alongside GitHub Packages). List of `{ name, url, apiKey }`. Pushed with `--skip-duplicate` so reruns don't fail on an already-published version. | `[]`                                            |
 
 ### Build Order
 
@@ -83,6 +86,7 @@ This pipeline is configured to allow for execution of SonarQube/SonarCloud analy
 ### 1.0.0 \[v1.yml\]
 
 - Initial Creation
+- Added `additionalNugetPublish` to support pushing to more than one feed (e.g. nuget.org in addition to a primary GitHub Packages feed) without changing existing consumers' behavior (defaults to `[]`).
 
 [1]: https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/use-dotnet-v2?view=azure-pipelines "UseDotNet@2 Documentation"
 [2]: https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/dotnet-core-cli-v2?view=azure-pipelines "DotNetCoreCLI@2 Documentation"
