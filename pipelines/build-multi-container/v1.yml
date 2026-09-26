@@ -54,6 +54,14 @@ parameters:
   - name: testProjects
     type: string
     default: "**/*tests/*.csproj"
+  # See dotnet-multi-publish-build-steps/v1.yml's testRunner parameter comment
+  # for the vstest vs mtp (Microsoft.Testing.Platform) tradeoffs.
+  - name: testRunner
+    type: string
+    default: "vstest"
+    values:
+      - vstest
+      - mtp
 
   # .NET Sonarqube Settings (one project covering all C# in the solution)
   - name: executeSonar
@@ -260,6 +268,7 @@ stages:
               sonarProjectName: ${{ parameters.sonarProjectName }}
               executeTests: ${{ parameters.executeTests }}
               testProjects: ${{ parameters.testProjects }}
+              testRunner: ${{ parameters.testRunner }}
               useSonarCloud: ${{ parameters.useSonarCloud }}
               sonarCloudOrganization: ${{ parameters.sonarCloudOrganization }}
               sonarExtraProperties: ${{ parameters.sonarExtraProperties }}

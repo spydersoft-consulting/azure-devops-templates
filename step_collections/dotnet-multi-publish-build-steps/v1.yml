@@ -30,6 +30,24 @@ parameters:
   - name: testProjects
     type: string
     default: "**/*tests/*.csproj"
+  # 'vstest' (default): classic dotnet test / VSTest, coverlet.collector for
+  #   coverage (--collect:"XPlat Code Coverage" --logger trx).
+  # 'mtp': Microsoft.Testing.Platform-hosted test projects (test projects set
+  #   EnableNUnitRunner/EnableMSTestRunner/EnableXUnitRunner + a global.json
+  #   `test.runner: Microsoft.Testing.Platform` opt-in). Requires each test
+  #   project to reference Microsoft.Testing.Extensions.TrxReport and
+  #   Microsoft.Testing.Extensions.CodeCoverage (coverlet.collector doesn't
+  #   hook into MTP-hosted runs). VSTest-mode `dotnet test` for MTP apps is a
+  #   hard error on .NET 10 SDK with Microsoft.Testing.Platform.MSBuild 2.x
+  #   ("no longer supported... on .NET 10 SDK and later"), so there is no
+  #   third "bridge" option here -- a repo on .NET 10 SDK with an MTP test
+  #   project must use 'mtp'.
+  - name: testRunner
+    type: string
+    default: "vstest"
+    values:
+      - vstest
+      - mtp
 
   # SonarQube Parameters - a SINGLE scope wraps the solution build,
   # so all C# code reports under one Sonar project.
@@ -90,8 +108,16 @@ steps:
               scannerMode: "dotnet"
               projectKey: ${{ parameters.sonarProjectKey }}
               projectName: ${{ parameters.sonarProjectName }}
+              # Emitted unconditionally for both testRunner modes: coverlet
+              # (vstest) writes coverage.opencover.xml, Microsoft.Testing.
+              # Extensions.CodeCoverage (mtp) only supports coverage/xml/
+              # cobertura output, not opencover, so it writes
+              # coverage.cobertura.xml instead (see the "Copy Test Files" step
+              # below). Only the glob matching real files contributes; the
+              # other is a harmless no-op for whichever mode isn't in use.
               extraProperties: |
                 sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/**/coverage.opencover.xml"
+                sonar.cs.cobertura.reportsPaths="$(Agent.TempDirectory)/ResultFiles/**/coverage.cobertura.xml"
                 ${{ parameters.sonarExtraProperties }}
       - ${{ else }}:
           - task: SonarQubePrepare@5
@@ -102,6 +128,7 @@ steps:
               projectName: ${{ parameters.sonarProjectName }}
               extraProperties: |
                 sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/**/coverage.opencover.xml"
+                sonar.cs.cobertura.reportsPaths="$(Agent.TempDirectory)/ResultFiles/**/coverage.cobertura.xml"
                 ${{ parameters.sonarExtraProperties }}
 
   - ${{ parameters.prebuildSteps }}
@@ -125,23 +152,64 @@ steps:
   - ${{ if eq(parameters.executeTests, true) }}:
       - ${{ parameters.preTestSteps }}
 
-      - task: DotNetCoreCLI@2
-        displayName: Test (dotnet test)
-        inputs:
-          command: test
-          projects: ${{ parameters.testProjects }}
-          publishTestResults: false
-          # Run --no-build: the solution build above already compiled the test
-          # projects (they are part of buildProject, same assumption the
-          # --no-build publish below relies on). Rebuilding here would happen
-          # WITHOUT the version props, regenerating AssemblyInfo at the default
-          # 1.0.0.0 and clobbering the test project's transitive deps (e.g.
-          # Core/Data) in the shared bin; a --no-build publish of an app outside
-          # the test graph (e.g. an API) would then ship those deps at 1.0.0.0
-          # next to a correctly-versioned entry assembly and fail to load them
-          # at runtime. --no-build keeps every assembly at the single version
-          # stamped by the solution build (and is faster).
-          arguments: '--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
+      - ${{ if eq(parameters.testRunner, 'vstest') }}:
+          - task: DotNetCoreCLI@2
+            displayName: Test (dotnet test)
+            inputs:
+              command: test
+              projects: ${{ parameters.testProjects }}
+              publishTestResults: false
+              # Run --no-build: the solution build above already compiled the test
+              # projects (they are part of buildProject, same assumption the
+              # --no-build publish below relies on). Rebuilding here would happen
+              # WITHOUT the version props, regenerating AssemblyInfo at the default
+              # 1.0.0.0 and clobbering the test project's transitive deps (e.g.
+              # Core/Data) in the shared bin; a --no-build publish of an app outside
+              # the test graph (e.g. an API) would then ship those deps at 1.0.0.0
+              # next to a correctly-versioned entry assembly and fail to load them
+              # at runtime. --no-build keeps every assembly at the single version
+              # stamped by the solution build (and is faster).
+              arguments: '--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
+      - ${{ else }}:
+          # MTP mode: dotnet test's own CLI args are VSTest-flavored and don't apply
+          # (see testRunner parameter comment above) -- Microsoft.Testing.Platform-hosted
+          # test projects are executables, so invoke each built test assembly directly.
+          # --report-trx's default filename already includes the assembly name + TFM (no
+          # collisions across projects/TFMs sharing one results directory); --coverage-output
+          # is a literal filename (no placeholder support), so every invocation writes
+          # "coverage.cobertura.xml" -- collisions are avoided by giving each invocation its
+          # own results subdirectory instead, which the Copy Test Files step below then
+          # flattens into ResultFiles/<guid>/.
+          - pwsh: |
+              $ErrorActionPreference = "Stop";
+              # testProjects is an ADO/minimatch-style glob (e.g. "src/**/*.UnitTests/*.csproj"),
+              # which native PowerShell -Path doesn't understand the same way the DotNetCoreCLI
+              # task does. Find test projects directly by their own IsTestProject marker instead --
+              # more robust than trying to translate the glob, and every SDK-style test project
+              # sets it (that's what makes `dotnet test`/IsTestingPlatformApplication work at all).
+              $csprojFiles = Get-ChildItem -Path . -Recurse -Filter *.csproj -File -ErrorAction SilentlyContinue |
+                  Where-Object { (Get-Content $_.FullName -Raw) -match '<IsTestProject>\s*true\s*</IsTestProject>' };
+
+              $hadFailure = $false;
+              foreach ($csproj in $csprojFiles)
+              {
+                  # Multi-targeted projects publish one assembly per TFM under bin/<config>/<tfm>/.
+                  $binRoot = Join-Path $csproj.Directory.FullName "bin/${{ parameters.buildConfiguration }}";
+                  $testDlls = Get-ChildItem -Path $binRoot -Filter "$($csproj.BaseName).dll" -Recurse -File -ErrorAction SilentlyContinue;
+                  foreach ($testDll in $testDlls)
+                  {
+                      $runId = [guid]::NewGuid().ToString();
+                      $runResultsDir = Join-Path $(Agent.TempDirectory) $runId;
+                      $null = New-Item -ItemType Directory -Path $runResultsDir -Force;
+
+                      Write-Host "Running $($testDll.FullName)";
+                      & dotnet $testDll.FullName --report-trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --results-directory $runResultsDir;
+                      if ($LASTEXITCODE -ne 0) { $hadFailure = $true; }
+                  }
+              }
+
+              if ($hadFailure) { exit 1; }
+            displayName: Test (Microsoft.Testing.Platform)
 
       - pwsh: |
           Push-Location $(Agent.TempDirectory);
@@ -152,10 +220,11 @@ steps:
           $null = New-Item -ItemType Directory -Path "ResultFiles";
           $resultFilesPath = Join-Path (Get-Location) "ResultFiles";
 
-          # Legacy layout (pre-.NET 10 SDK 10.0.300): coverage attachments organized into
-          # {trxname}/In/{machine}/coverage.*.xml alongside the trx file.
+          # Legacy layout (pre-.NET 10 SDK 10.0.300, and current vstest/coverlet):
+          # coverage attachments organized into {trxname}/In/{machine}/coverage.*.xml
+          # alongside the trx file.
           $copiedLegacy = $false;
-          $trxFiles = Get-ChildItem *.trx;
+          $trxFiles = Get-ChildItem *.trx -Recurse;
           foreach ($trxFile in $trxFiles)
           {
               $trxFileName = [System.IO.Path]::GetFileNameWithoutExtension($trxFile);
@@ -164,25 +233,39 @@ steps:
               Write-Host "Processing $copyPath";
               if (Test-Path $copyPath)
               {
-                  Copy-Item $copyPath $resultFilesPath -Recurse;
+                  $destDir = Join-Path $resultFilesPath ([guid]::NewGuid());
+                  $null = New-Item -ItemType Directory -Path $destDir;
+                  Copy-Item $copyPath $destDir -Recurse;
                   $copiedLegacy = $true;
               }
           }
 
-          # New layout (.NET 10 SDK 10.0.300+ / Microsoft.Testing.Platform):
-          # coverage.*.xml is written directly into a GUID-named sibling folder of the trx.
-          # Only fall back to this if the legacy layout wasn't found, to avoid duplicating
-          # results when both exist.
+          # New layout (.NET 10 SDK 10.0.300+ / Microsoft.Testing.Platform): coverage
+          # attachments can sit at any depth under each run's results directory (e.g.
+          # mtp's own <user>_<machine>_<timestamp>/In/<machine>/coverage.*.xml, or
+          # flat alongside the trx) -- search recursively rather than assume a fixed
+          # depth. Only fall back to this if the legacy layout wasn't found, to avoid
+          # duplicating results when both exist.
+          #
+          # mtp writes the SAME report to two paths under one run folder (a flat copy
+          # plus a nested VSTest-compatible copy) -- take only the shallowest match per
+          # run folder, or PublishCodeCoverageResults would ingest each run's coverage
+          # twice.
           if (-not $copiedLegacy)
           {
-              $coverageDirs = Get-ChildItem -Directory | Where-Object {
-                  $_.Name -ne 'ResultFiles' -and
-                  (Get-ChildItem -Path $_.FullName -Filter 'coverage.*.xml' -File -ErrorAction SilentlyContinue)
-              };
-              foreach ($dir in $coverageDirs)
+              $runDirs = Get-ChildItem -Directory | Where-Object { $_.Name -ne 'ResultFiles' };
+              foreach ($runDir in $runDirs)
               {
-                  Write-Host "Processing $($dir.FullName)";
-                  Copy-Item $dir.FullName $resultFilesPath -Recurse;
+                  $file = Get-ChildItem -Path $runDir.FullName -Filter 'coverage.*.xml' -File -Recurse -ErrorAction SilentlyContinue |
+                      Sort-Object { ($_.FullName -split '\\').Count } |
+                      Select-Object -First 1;
+                  if ($file)
+                  {
+                      Write-Host "Processing $($file.FullName)";
+                      $destDir = Join-Path $resultFilesPath ([guid]::NewGuid());
+                      $null = New-Item -ItemType Directory -Path $destDir;
+                      Copy-Item $file.FullName $destDir;
+                  }
               }
           }
 
@@ -192,7 +275,11 @@ steps:
       - task: PublishTestResults@2
         inputs:
           testResultsFormat: "VSTest"
-          testResultsFiles: "$(Agent.TempDirectory)/*.trx"
+          # Recursive: vstest mode writes trx flat into Agent.TempDirectory; mtp mode
+          # (see Test (Microsoft.Testing.Platform) step above) writes each run's trx into
+          # its own per-run subdirectory. ResultFiles/ never contains a *.trx copy (only
+          # coverage.*.xml / coverage folders), so this can't double-count results.
+          testResultsFiles: "$(Agent.TempDirectory)/**/*.trx"
 
       - task: PublishCodeCoverageResults@2
         condition: true # always try publish coverage results, even if unit tests fail
