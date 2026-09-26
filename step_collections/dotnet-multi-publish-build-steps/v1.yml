@@ -171,45 +171,28 @@ steps:
               # stamped by the solution build (and is faster).
               arguments: '--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
       - ${{ else }}:
-          # MTP mode: dotnet test's own CLI args are VSTest-flavored and don't apply
-          # (see testRunner parameter comment above) -- Microsoft.Testing.Platform-hosted
-          # test projects are executables, so invoke each built test assembly directly.
-          # --report-trx's default filename already includes the assembly name + TFM (no
-          # collisions across projects/TFMs sharing one results directory); --coverage-output
-          # is a literal filename (no placeholder support), so every invocation writes
-          # "coverage.cobertura.xml" -- collisions are avoided by giving each invocation its
-          # own results subdirectory instead, which the Copy Test Files step below then
-          # flattens into ResultFiles/<guid>/.
-          - pwsh: |
-              $ErrorActionPreference = "Stop";
-              # testProjects is an ADO/minimatch-style glob (e.g. "src/**/*.UnitTests/*.csproj"),
-              # which native PowerShell -Path doesn't understand the same way the DotNetCoreCLI
-              # task does. Find test projects directly by their own IsTestProject marker instead --
-              # more robust than trying to translate the glob, and every SDK-style test project
-              # sets it (that's what makes `dotnet test`/IsTestingPlatformApplication work at all).
-              $csprojFiles = Get-ChildItem -Path . -Recurse -Filter *.csproj -File -ErrorAction SilentlyContinue |
-                  Where-Object { (Get-Content $_.FullName -Raw) -match '<IsTestProject>\s*true\s*</IsTestProject>' };
-
-              $hadFailure = $false;
-              foreach ($csproj in $csprojFiles)
-              {
-                  # Multi-targeted projects publish one assembly per TFM under bin/<config>/<tfm>/.
-                  $binRoot = Join-Path $csproj.Directory.FullName "bin/${{ parameters.buildConfiguration }}";
-                  $testDlls = Get-ChildItem -Path $binRoot -Filter "$($csproj.BaseName).dll" -Recurse -File -ErrorAction SilentlyContinue;
-                  foreach ($testDll in $testDlls)
-                  {
-                      $runId = [guid]::NewGuid().ToString();
-                      $runResultsDir = Join-Path $(Agent.TempDirectory) $runId;
-                      $null = New-Item -ItemType Directory -Path $runResultsDir -Force;
-
-                      Write-Host "Running $($testDll.FullName)";
-                      & dotnet $testDll.FullName --report-trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --results-directory $runResultsDir;
-                      if ($LASTEXITCODE -ne 0) { $hadFailure = $true; }
-                  }
-              }
-
-              if ($hadFailure) { exit 1; }
-            displayName: Test (Microsoft.Testing.Platform)
+          # MTP mode: still plain `dotnet test` via the same task -- the repo's own
+          # global.json (test.runner: Microsoft.Testing.Platform) is what switches
+          # `dotnet test` itself into MTP's native CLI, so only the arguments need to
+          # change, not the invocation mechanism. VSTest-flavored flags like
+          # --collect:"XPlat Code Coverage" / --logger trx are replaced with MTP's own
+          # --coverage / --report-trx.
+          #
+          # --coverage-output is a literal filename (no placeholder support), so every
+          # matched project/TFM would write the same "coverage.cobertura.xml" name --
+          # but each is still a separate `dotnet test <project>` process (the task
+          # invokes one per project the testProjects glob matches), and MTP gives each
+          # of those its own machine+timestamp-named results subfolder, so they don't
+          # collide even sharing one --results-directory. The Copy Test Files step
+          # below dedupes MTP's per-run duplicate (it writes the same report to two
+          # paths under that folder).
+          - task: DotNetCoreCLI@2
+            displayName: Test (dotnet test)
+            inputs:
+              command: test
+              projects: ${{ parameters.testProjects }}
+              publishTestResults: false
+              arguments: '--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --report-trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --results-directory "$(Agent.TempDirectory)"'
 
       - pwsh: |
           Push-Location $(Agent.TempDirectory);
