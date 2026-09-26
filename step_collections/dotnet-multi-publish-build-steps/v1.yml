@@ -30,18 +30,7 @@ parameters:
   - name: testProjects
     type: string
     default: "**/*tests/*.csproj"
-  # 'vstest' (default): classic dotnet test / VSTest, coverlet.collector for
-  #   coverage (--collect:"XPlat Code Coverage" --logger trx).
-  # 'mtp': Microsoft.Testing.Platform-hosted test projects (test projects set
-  #   EnableNUnitRunner/EnableMSTestRunner/EnableXUnitRunner + a global.json
-  #   `test.runner: Microsoft.Testing.Platform` opt-in). Requires each test
-  #   project to reference Microsoft.Testing.Extensions.TrxReport and
-  #   Microsoft.Testing.Extensions.CodeCoverage (coverlet.collector doesn't
-  #   hook into MTP-hosted runs). VSTest-mode `dotnet test` for MTP apps is a
-  #   hard error on .NET 10 SDK with Microsoft.Testing.Platform.MSBuild 2.x
-  #   ("no longer supported... on .NET 10 SDK and later"), so there is no
-  #   third "bridge" option here -- a repo on .NET 10 SDK with an MTP test
-  #   project must use 'mtp'.
+  # See README.md#test-runner-modes.
   - name: testRunner
     type: string
     default: "vstest"
@@ -108,13 +97,7 @@ steps:
               scannerMode: "dotnet"
               projectKey: ${{ parameters.sonarProjectKey }}
               projectName: ${{ parameters.sonarProjectName }}
-              # Emitted unconditionally for both testRunner modes: coverlet
-              # (vstest) writes coverage.opencover.xml, Microsoft.Testing.
-              # Extensions.CodeCoverage (mtp) only supports coverage/xml/
-              # cobertura output, not opencover, so it writes
-              # coverage.cobertura.xml instead (see the "Copy Test Files" step
-              # below). Only the glob matching real files contributes; the
-              # other is a harmless no-op for whichever mode isn't in use.
+              # Both reportsPaths cover the two testRunner modes -- see README.md#test-runner-modes.
               extraProperties: |
                 sonar.cs.opencover.reportsPaths="$(Agent.TempDirectory)/ResultFiles/**/coverage.opencover.xml"
                 sonar.cs.cobertura.reportsPaths="$(Agent.TempDirectory)/ResultFiles/**/coverage.cobertura.xml"
@@ -159,33 +142,11 @@ steps:
               command: test
               projects: ${{ parameters.testProjects }}
               publishTestResults: false
-              # Run --no-build: the solution build above already compiled the test
-              # projects (they are part of buildProject, same assumption the
-              # --no-build publish below relies on). Rebuilding here would happen
-              # WITHOUT the version props, regenerating AssemblyInfo at the default
-              # 1.0.0.0 and clobbering the test project's transitive deps (e.g.
-              # Core/Data) in the shared bin; a --no-build publish of an app outside
-              # the test graph (e.g. an API) would then ship those deps at 1.0.0.0
-              # next to a correctly-versioned entry assembly and fail to load them
-              # at runtime. --no-build keeps every assembly at the single version
-              # stamped by the solution build (and is faster).
+              # --no-build: reuses the versioned solution build above -- see
+              # README.md#implementation-notes.
               arguments: '--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
       - ${{ else }}:
-          # MTP mode: still plain `dotnet test` via the same task -- the repo's own
-          # global.json (test.runner: Microsoft.Testing.Platform) is what switches
-          # `dotnet test` itself into MTP's native CLI, so only the arguments need to
-          # change, not the invocation mechanism. VSTest-flavored flags like
-          # --collect:"XPlat Code Coverage" / --logger trx are replaced with MTP's own
-          # --coverage / --report-trx.
-          #
-          # --coverage-output is a literal filename (no placeholder support), so every
-          # matched project/TFM would write the same "coverage.cobertura.xml" name --
-          # but each is still a separate `dotnet test <project>` process (the task
-          # invokes one per project the testProjects glob matches), and MTP gives each
-          # of those its own machine+timestamp-named results subfolder, so they don't
-          # collide even sharing one --results-directory. The Copy Test Files step
-          # below dedupes MTP's per-run duplicate (it writes the same report to two
-          # paths under that folder).
+          # mtp mode -- see README.md#test-runner-modes.
           - task: DotNetCoreCLI@2
             displayName: Test (dotnet test)
             inputs:
@@ -203,9 +164,8 @@ steps:
           $null = New-Item -ItemType Directory -Path "ResultFiles";
           $resultFilesPath = Join-Path (Get-Location) "ResultFiles";
 
-          # Legacy layout (pre-.NET 10 SDK 10.0.300, and current vstest/coverlet):
-          # coverage attachments organized into {trxname}/In/{machine}/coverage.*.xml
-          # alongside the trx file.
+          # vstest/coverlet layout: coverage attachments organized into
+          # {trxname}/In/{machine}/coverage.*.xml alongside the trx file.
           $copiedLegacy = $false;
           $trxFiles = Get-ChildItem *.trx -Recurse;
           foreach ($trxFile in $trxFiles)
@@ -223,17 +183,9 @@ steps:
               }
           }
 
-          # New layout (.NET 10 SDK 10.0.300+ / Microsoft.Testing.Platform): coverage
-          # attachments can sit at any depth under each run's results directory (e.g.
-          # mtp's own <user>_<machine>_<timestamp>/In/<machine>/coverage.*.xml, or
-          # flat alongside the trx) -- search recursively rather than assume a fixed
-          # depth. Only fall back to this if the legacy layout wasn't found, to avoid
-          # duplicating results when both exist.
-          #
-          # mtp writes the SAME report to two paths under one run folder (a flat copy
-          # plus a nested VSTest-compatible copy) -- take only the shallowest match per
-          # run folder, or PublishCodeCoverageResults would ingest each run's coverage
-          # twice.
+          # mtp layout: search recursively (coverage can sit at any depth under each
+          # run's results directory) and take one -- the shallowest -- match per run
+          # folder, since mtp writes the same report to two paths there.
           if (-not $copiedLegacy)
           {
               $runDirs = Get-ChildItem -Directory | Where-Object { $_.Name -ne 'ResultFiles' };
@@ -258,10 +210,7 @@ steps:
       - task: PublishTestResults@2
         inputs:
           testResultsFormat: "VSTest"
-          # Recursive: vstest mode writes trx flat into Agent.TempDirectory; mtp mode
-          # (see Test (Microsoft.Testing.Platform) step above) writes each run's trx into
-          # its own per-run subdirectory. ResultFiles/ never contains a *.trx copy (only
-          # coverage.*.xml / coverage folders), so this can't double-count results.
+          # Recursive to cover both testRunner modes -- see README.md#test-runner-modes.
           testResultsFiles: "$(Agent.TempDirectory)/**/*.trx"
 
       - task: PublishCodeCoverageResults@2
@@ -287,23 +236,15 @@ steps:
             inputs:
               pollingTimeoutSec: "300"
 
-  # Publish each container's csproj to its own staging subdirectory, then
-  # upload as a separate pipeline artifact. --no-build reuses the solution
-  # build above, so each container reflects the exact bits Sonar scanned.
-  # This depends on NOTHING recompiling after the versioned solution build
-  # (the test step above is also --no-build) so every assembly carries the
-  # single AssemblyVersion stamped by that build; otherwise a recompile
-  # without the version props would stamp deps at 1.0.0.0 and the app would
-  # fail to load them at runtime (FileNotFoundException: '<dep>, Version=...').
+  # Publishes each publishProjects entry to its own staging subdirectory and pipeline
+  # artifact, reusing the solution build above (--no-build) -- see
+  # README.md#implementation-notes.
   - ${{ each pub in parameters.publishProjects }}:
       - task: DotNetCoreCLI@2
         displayName: "Publish ${{ pub.name }} (dotnet publish)"
         inputs:
           command: publish
-          # publishWebProjects defaults to true and, when true, the task ignores
-          # the `projects` input and auto-globs for web-SDK csprojs. We need our
-          # explicit per-image project to win, so disable it.
-          publishWebProjects: false
+          publishWebProjects: false # let `projects` (below) pick the project, not an auto-glob
           projects: ${{ pub.project }}
           arguments: "--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --output $(Build.ArtifactStagingDirectory)/${{ pub.name }} /p:InformationalVersion=$(fullSemVer) /p:AssemblyVersion=$(AssemblySemVer) /p:AssemblyFileVersion=$(AssemblySemFileVer)"
           zipAfterPublish: True

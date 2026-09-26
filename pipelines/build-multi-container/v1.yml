@@ -54,8 +54,7 @@ parameters:
   - name: testProjects
     type: string
     default: "**/*tests/*.csproj"
-  # See dotnet-multi-publish-build-steps/v1.yml's testRunner parameter comment
-  # for the vstest vs mtp (Microsoft.Testing.Platform) tradeoffs.
+  # See dotnet-multi-publish-build-steps/README.md#test-runner-modes.
   - name: testRunner
     type: string
     default: "vstest"
