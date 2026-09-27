@@ -146,14 +146,48 @@ steps:
               # README.md#implementation-notes.
               arguments: '--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
       - ${{ else }}:
-          # mtp mode -- see README.md#test-runner-modes.
-          - task: DotNetCoreCLI@2
+          # mtp mode -- see README.md#test-runner-modes. DotNetCoreCLI@2's `command: test`
+          # always shells out to `MSBuild --target:VSTest` regardless of `arguments`
+          # (that's how the task implements command: test), which doesn't recognize
+          # MTP-native flags at all ("MSB1001: Unknown switch" on --report-trx). Call the
+          # dotnet CLI directly instead -- global.json's `test.runner` opt-in is what
+          # makes plain `dotnet test` use MTP, and that only works through the real CLI.
+          - pwsh: |
+              $ErrorActionPreference = "Stop";
+              # testProjects is an ADO/minimatch-style glob, which PowerShell -Path
+              # doesn't parse the same way the DotNetCoreCLI task does -- find test
+              # projects by their own IsTestProject marker instead.
+              $csprojFiles = Get-ChildItem -Path . -Recurse -Filter *.csproj -File -ErrorAction SilentlyContinue |
+                  Where-Object { (Get-Content $_.FullName -Raw) -match '<IsTestProject>\s*true\s*</IsTestProject>' };
+
+              $hadFailure = $false;
+              foreach ($csproj in $csprojFiles)
+              {
+                  # One `dotnet test --test-modules` invocation per built TFM assembly, each
+                  # with its own guaranteed-unique results directory. A single `dotnet test
+                  # <csproj>` call runs every targeted TFM in parallel, and --coverage-output
+                  # is a fixed filename -- MTP's own results-subfolder naming for that isn't
+                  # reliably collision-free under that parallelism (observed one dropped
+                  # report out of several TFMs sharing a directory), so give each run its own
+                  # directory instead of trusting MTP's.
+                  $binRoot = Join-Path $csproj.Directory.FullName "bin/${{ parameters.buildConfiguration }}";
+                  $testDlls = Get-ChildItem -Path $binRoot -Filter "$($csproj.BaseName).dll" -Recurse -File -ErrorAction SilentlyContinue;
+                  foreach ($testDll in $testDlls)
+                  {
+                      $runResultsDir = Join-Path $(Agent.TempDirectory) ([guid]::NewGuid());
+                      $null = New-Item -ItemType Directory -Path $runResultsDir -Force;
+
+                      # --test-modules matches against --root-directory (defaults to the
+                      # working directory) as a pattern -- an absolute path silently matches
+                      # nothing ("No test modules found"), even one under that same root.
+                      $relativeDllPath = [System.IO.Path]::GetRelativePath((Get-Location), $testDll.FullName);
+                      & dotnet test --test-modules $relativeDllPath --no-build --no-restore --report-trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --results-directory $runResultsDir;
+                      if ($LASTEXITCODE -ne 0) { $hadFailure = $true; }
+                  }
+              }
+
+              if ($hadFailure) { exit 1; }
             displayName: Test (dotnet test)
-            inputs:
-              command: test
-              projects: ${{ parameters.testProjects }}
-              publishTestResults: false
-              arguments: '--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --report-trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --results-directory "$(Agent.TempDirectory)"'
 
       - pwsh: |
           Push-Location $(Agent.TempDirectory);
@@ -183,24 +217,20 @@ steps:
               }
           }
 
-          # mtp layout: search recursively (coverage can sit at any depth under each
-          # run's results directory) and take one -- the shallowest -- match per run
-          # folder, since mtp writes the same report to two paths there.
+          # mtp layout: each run (see "Test (dotnet test)" above -- one per built TFM
+          # assembly, each with its own results directory) writes its report to two paths:
+          # a flat copy, and a nested "<run>/In/<machine>/coverage.*.xml" copy. Match only
+          # the nested one -- it's the unique, non-duplicate copy.
           if (-not $copiedLegacy)
           {
-              $runDirs = Get-ChildItem -Directory | Where-Object { $_.Name -ne 'ResultFiles' };
-              foreach ($runDir in $runDirs)
+              $files = Get-ChildItem -Path . -Filter 'coverage.*.xml' -File -Recurse -ErrorAction SilentlyContinue |
+                  Where-Object { $_.FullName -match '\\In\\[^\\]+\\coverage\.[^\\]+\.xml$' };
+              foreach ($file in $files)
               {
-                  $file = Get-ChildItem -Path $runDir.FullName -Filter 'coverage.*.xml' -File -Recurse -ErrorAction SilentlyContinue |
-                      Sort-Object { ($_.FullName -split '\\').Count } |
-                      Select-Object -First 1;
-                  if ($file)
-                  {
-                      Write-Host "Processing $($file.FullName)";
-                      $destDir = Join-Path $resultFilesPath ([guid]::NewGuid());
-                      $null = New-Item -ItemType Directory -Path $destDir;
-                      Copy-Item $file.FullName $destDir;
-                  }
+                  Write-Host "Processing $($file.FullName)";
+                  $destDir = Join-Path $resultFilesPath ([guid]::NewGuid());
+                  $null = New-Item -ItemType Directory -Path $destDir;
+                  Copy-Item $file.FullName $destDir;
               }
           }
 
