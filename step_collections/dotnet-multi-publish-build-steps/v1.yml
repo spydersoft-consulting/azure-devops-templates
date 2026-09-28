@@ -152,32 +152,15 @@ steps:
           # MTP-native flags at all ("MSB1001: Unknown switch" on --report-trx). Call the
           # dotnet CLI directly instead -- global.json's `test.runner` opt-in is what
           # makes plain `dotnet test` use MTP, and that only works through the real CLI.
+          # `--solution` does its own test-project discovery (via IsTestProject, same as
+          # the SDK itself) and runs every matching TFM across every test project in the
+          # solution, so no project/module enumeration is needed here at all.
           - pwsh: |
-              $ErrorActionPreference = "Stop";
-              # testProjects is an ADO/minimatch-style glob, which PowerShell -Path doesn't
-              # parse the same way the DotNetCoreCLI task does, and --test-modules needs an
-              # exact per-TFM dll path anyway (a dll glob can't tell a project's own test
-              # assembly apart from its dependency/resource dlls sitting in the same bin
-              # folder without a naming convention). Find test projects by their own
-              # IsTestProject marker, then their built dlls, instead.
-              $csprojFiles = Get-ChildItem -Path . -Recurse -Filter *.csproj -File -ErrorAction SilentlyContinue |
-                  Where-Object { (Get-Content $_.FullName -Raw) -match '<IsTestProject>\s*true\s*</IsTestProject>' };
-
-              $testDlls = foreach ($csproj in $csprojFiles) {
-                  $binRoot = Join-Path $csproj.Directory.FullName "bin/${{ parameters.buildConfiguration }}";
-                  Get-ChildItem -Path $binRoot -Filter "$($csproj.BaseName).dll" -Recurse -File -ErrorAction SilentlyContinue;
-              }
-
-              # --test-modules matches its argument against --root-directory (defaults to
-              # the working directory) as a pattern -- an absolute path silently matches
-              # nothing, even one under that same root, so these need to be relative.
-              $modules = ($testDlls | ForEach-Object { [System.IO.Path]::GetRelativePath((Get-Location), $_.FullName) }) -join ';';
-
-              # One dotnet test invocation for every module. --max-parallel-test-modules 1:
-              # --coverage-output is a fixed filename, and MTP's own results-subfolder naming
-              # for that isn't reliably collision-free when modules run in parallel sharing
-              # one --results-directory (observed a dropped coverage report otherwise).
-              dotnet test --test-modules $modules --max-parallel-test-modules 1 --no-build --no-restore --report-trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --results-directory "$(Agent.TempDirectory)";
+              # --max-parallel-test-modules 1: --coverage-output is a fixed filename, and
+              # MTP's own results-subfolder naming for that isn't reliably collision-free
+              # when modules run in parallel sharing one --results-directory (observed a
+              # dropped coverage report otherwise).
+              dotnet test --solution ${{ parameters.buildProject }} --configuration ${{ parameters.buildConfiguration }} --max-parallel-test-modules 1 --no-build --no-restore --report-trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --results-directory "$(Agent.TempDirectory)";
               exit $LASTEXITCODE;
             displayName: Test (dotnet test)
 

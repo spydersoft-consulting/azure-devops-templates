@@ -39,12 +39,12 @@ steps:
 
 ### Test Parameters
 
-| Name           | Type     | Description                                                     | Default Value        |
-| -------------- | -------- | --------------------------------------------------------------- | -------------------- |
-| `executeTests` | boolean  | If `true`, tests execute after the build.                       | `false`              |
-| `testProjects` | string   | Projects to test. See [file matching patterns reference][3].    | `**/*tests/*.csproj` |
-| `testRunner`   | string   | `vstest` or `mtp`. See [Test Runner Modes](#test-runner-modes). | `vstest`             |
-| `preTestSteps` | stepList | Steps executed immediately before the test step.                | `[]`                 |
+| Name           | Type     | Description                                                                                                                                                                                              | Default Value        |
+| -------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `executeTests` | boolean  | If `true`, tests execute after the build.                                                                                                                                                                | `false`              |
+| `testProjects` | string   | Projects to test. See [file matching patterns reference][3]. Only used by `testRunner: vstest` — `mtp` discovers test projects itself from `buildProject` (see [Test Runner Modes](#test-runner-modes)). | `**/*tests/*.csproj` |
+| `testRunner`   | string   | `vstest` or `mtp`. See [Test Runner Modes](#test-runner-modes).                                                                                                                                          | `vstest`             |
+| `preTestSteps` | stepList | Steps executed immediately before the test step.                                                                                                                                                         | `[]`                 |
 
 ### Sonar Parameters
 
@@ -80,26 +80,23 @@ uploaded as its own pipeline artifact (consumed by a downstream docker/helm stag
 
 ## Test Runner Modes
 
-| Mode               | Test host                                                                                                          | Coverage                                                                                                 | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vstest` (default) | Classic VSTest, via `DotNetCoreCLI@2`'s `command: test`.                                                           | `coverlet.collector` (`coverage.opencover.xml` + `coverage.cobertura.xml`).                              | Works for any test project (MSTest/NUnit/xUnit) that hasn't opted into Microsoft.Testing.Platform (MTP).                                                                                                                                                                                                                                                                                                                                           |
-| `mtp`              | [Microsoft.Testing.Platform][5]-hosted test projects, via a `pwsh` step that calls the `dotnet test` CLI directly. | [`Microsoft.Testing.Extensions.CodeCoverage`][6] (`coverage.cobertura.xml` only — no OpenCover support). | Required once a repo's test projects enable their framework's MTP runner (e.g. NUnit's `EnableNUnitRunner`) and pull in `Microsoft.Testing.Platform.MSBuild` 2.x: VSTest-mode `dotnet test` becomes a hard build error for those projects on .NET 10 SDK. Each test project must also reference `Microsoft.Testing.Extensions.TrxReport` and `Microsoft.Testing.Extensions.CodeCoverage` — `coverlet.collector` doesn't hook into MTP-hosted runs. |
+| Mode               | Test host                                                                                                                      | Coverage                                                                                                 | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vstest` (default) | Classic VSTest, via `DotNetCoreCLI@2`'s `command: test`.                                                                       | `coverlet.collector` (`coverage.opencover.xml` + `coverage.cobertura.xml`).                              | Works for any test project (MSTest/NUnit/xUnit) that hasn't opted into Microsoft.Testing.Platform (MTP).                                                                                                                                                                                                                                                                                                                                           |
+| `mtp`              | [Microsoft.Testing.Platform][5]-hosted test projects, via a one-line `pwsh` step that calls `dotnet test --solution` directly. | [`Microsoft.Testing.Extensions.CodeCoverage`][6] (`coverage.cobertura.xml` only — no OpenCover support). | Required once a repo's test projects enable their framework's MTP runner (e.g. NUnit's `EnableNUnitRunner`) and pull in `Microsoft.Testing.Platform.MSBuild` 2.x: VSTest-mode `dotnet test` becomes a hard build error for those projects on .NET 10 SDK. Each test project must also reference `Microsoft.Testing.Extensions.TrxReport` and `Microsoft.Testing.Extensions.CodeCoverage` — `coverlet.collector` doesn't hook into MTP-hosted runs. |
 
 `vstest` mode uses `DotNetCoreCLI@2`'s `command: test` as normal. `mtp` mode can't: that
 input unconditionally shells out to `MSBuild --target:VSTest` regardless of `arguments`
 (confirmed via a real CI failure — `MSB1001: Unknown switch` on `--report-trx`), and a
 repo's `global.json` `test.runner` opt-in only takes effect through the real `dotnet test`
-CLI. So `mtp` mode finds each test project by its own `IsTestProject` marker (the
-`testProjects` glob is ADO/minimatch-style and doesn't translate to PowerShell `-Path`,
-and matching build output by a dll glob can't tell a project's own test assembly apart
-from its dependency/resource dlls sitting in the same `bin/` folder without a naming
-convention), builds a semicolon-joined list of each project's built TFM assemblies, and
-runs them all in one `dotnet test --test-modules "<dll1>;<dll2>;..." --max-parallel-test-modules 1`
-call. The `1` matters: `--coverage-output` is a fixed filename, and MTP's own
-results-subfolder naming for that isn't reliably collision-free when modules run in
-parallel sharing one `--results-directory` (a coverage report was silently dropped
-without it during validation) — serializing avoids the collision at some cost to
-wall-clock time.
+CLI. So `mtp` mode calls `dotnet test --solution ${{ parameters.buildProject }}` directly
+instead — the CLI does its own test-project discovery (via `IsTestProject`, same as the
+SDK itself), so no project/module enumeration is needed at all; `testProjects` is unused
+in this mode. `--max-parallel-test-modules 1` is the one non-obvious flag: `--coverage-output`
+is a fixed filename, and MTP's own results-subfolder naming for that isn't reliably
+collision-free when modules run in parallel sharing one `--results-directory` (a coverage
+report was silently dropped without it during validation) — serializing avoids the
+collision at some cost to wall-clock time.
 
 Both modes share the same "Copy Test Files" / `PublishTestResults@2` / `PublishCodeCoverageResults@2`
 steps: trx and coverage files are searched for recursively under `$(Agent.TempDirectory)`
@@ -133,6 +130,10 @@ contributes; the other is a harmless no-op.
 
 - Added `testRunner` parameter (`vstest` / `mtp`) for repos whose test projects have
   migrated to Microsoft.Testing.Platform.
+
+### 1.1.1 \[v1.yml\]
+
+- `mtp` mode simplified to a single `dotnet test --solution` call.
 
 [1]: https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/use-dotnet-v2?view=azure-pipelines "UseDotNet@2 Documentation"
 [3]: https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/file-matching-patterns?view=azure-devops "File matching patterns reference"
