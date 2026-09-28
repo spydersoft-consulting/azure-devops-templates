@@ -7,18 +7,11 @@ parameters:
     type: string
     default: "8.0.x"
 
-  # The solution (or csproj glob) to build. Building the solution is what
-  # makes the SonarQube/SonarCloud scanner see ALL C# projects as one
-  # Sonar project. Defaults to the first .slnx in the repo root.
   - name: buildProject
     type: string
     default: "**/*.slnx"
 
-  # List of projects to publish, each becomes its own pipeline artifact.
-  # Each entry: { name, project, artifactName }
-  #   name         - short identifier, used for staging subdirectory and display names
-  #   project      - path/glob to the csproj
-  #   artifactName - pipeline artifact name (consumed by the docker job)
+  # See README.md#publish-projects.
   - name: publishProjects
     type: object
     default: []
@@ -38,8 +31,6 @@ parameters:
       - vstest
       - mtp
 
-  # SonarQube Parameters - a SINGLE scope wraps the solution build,
-  # so all C# code reports under one Sonar project.
   - name: executeSonar
     type: boolean
     default: false
@@ -74,9 +65,6 @@ parameters:
     type: string
     default: "SpydersoftGithub"
 
-  # Path to nuget.config. Defaults to the repo root, but some repos keep it
-  # elsewhere (e.g. a monorepo where nuget.config lives under a shared src/
-  # directory rather than the checkout root).
   - name: nugetConfigPath
     type: string
     default: "$(Build.SourcesDirectory)/nuget.config"
@@ -146,14 +134,17 @@ steps:
               # README.md#implementation-notes.
               arguments: '--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
       - ${{ else }}:
-          # mtp mode -- see README.md#test-runner-modes.
+          # mtp mode -- see README.md#test-runner-modes. DotNetCoreCLI@2 (2.256.3+) detects
+          # Microsoft.Testing.Platform via global.json itself and adds --solution/--project
+          # accordingly -- requires global.json to be discoverable from the default working
+          # directory (repo root), not nested under a subdirectory.
           - task: DotNetCoreCLI@2
             displayName: Test (dotnet test)
             inputs:
               command: test
-              projects: ${{ parameters.testProjects }}
+              projects: ${{ parameters.buildProject }}
               publishTestResults: false
-              arguments: '--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --report-trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --results-directory "$(Agent.TempDirectory)"'
+              arguments: '--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --max-parallel-test-modules 1 --report-trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --results-directory "$(Agent.TempDirectory)"'
 
       - pwsh: |
           Push-Location $(Agent.TempDirectory);
@@ -164,8 +155,7 @@ steps:
           $null = New-Item -ItemType Directory -Path "ResultFiles";
           $resultFilesPath = Join-Path (Get-Location) "ResultFiles";
 
-          # vstest/coverlet layout: coverage attachments organized into
-          # {trxname}/In/{machine}/coverage.*.xml alongside the trx file.
+          # See README.md#test-runner-modes for the two layouts handled below.
           $copiedLegacy = $false;
           $trxFiles = Get-ChildItem *.trx -Recurse;
           foreach ($trxFile in $trxFiles)
@@ -183,24 +173,16 @@ steps:
               }
           }
 
-          # mtp layout: search recursively (coverage can sit at any depth under each
-          # run's results directory) and take one -- the shallowest -- match per run
-          # folder, since mtp writes the same report to two paths there.
           if (-not $copiedLegacy)
           {
-              $runDirs = Get-ChildItem -Directory | Where-Object { $_.Name -ne 'ResultFiles' };
-              foreach ($runDir in $runDirs)
+              $files = Get-ChildItem -Path . -Filter 'coverage.*.xml' -File -Recurse -ErrorAction SilentlyContinue |
+                  Where-Object { $_.FullName -match '\\In\\[^\\]+\\coverage\.[^\\]+\.xml$' };
+              foreach ($file in $files)
               {
-                  $file = Get-ChildItem -Path $runDir.FullName -Filter 'coverage.*.xml' -File -Recurse -ErrorAction SilentlyContinue |
-                      Sort-Object { ($_.FullName -split '\\').Count } |
-                      Select-Object -First 1;
-                  if ($file)
-                  {
-                      Write-Host "Processing $($file.FullName)";
-                      $destDir = Join-Path $resultFilesPath ([guid]::NewGuid());
-                      $null = New-Item -ItemType Directory -Path $destDir;
-                      Copy-Item $file.FullName $destDir;
-                  }
+                  Write-Host "Processing $($file.FullName)";
+                  $destDir = Join-Path $resultFilesPath ([guid]::NewGuid());
+                  $null = New-Item -ItemType Directory -Path $destDir;
+                  Copy-Item $file.FullName $destDir;
               }
           }
 
