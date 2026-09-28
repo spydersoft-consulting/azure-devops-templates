@@ -80,23 +80,34 @@ uploaded as its own pipeline artifact (consumed by a downstream docker/helm stag
 
 ## Test Runner Modes
 
-| Mode               | Test host                                                                                                                      | Coverage                                                                                                 | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vstest` (default) | Classic VSTest, via `DotNetCoreCLI@2`'s `command: test`.                                                                       | `coverlet.collector` (`coverage.opencover.xml` + `coverage.cobertura.xml`).                              | Works for any test project (MSTest/NUnit/xUnit) that hasn't opted into Microsoft.Testing.Platform (MTP).                                                                                                                                                                                                                                                                                                                                           |
-| `mtp`              | [Microsoft.Testing.Platform][5]-hosted test projects, via a one-line `pwsh` step that calls `dotnet test --solution` directly. | [`Microsoft.Testing.Extensions.CodeCoverage`][6] (`coverage.cobertura.xml` only — no OpenCover support). | Required once a repo's test projects enable their framework's MTP runner (e.g. NUnit's `EnableNUnitRunner`) and pull in `Microsoft.Testing.Platform.MSBuild` 2.x: VSTest-mode `dotnet test` becomes a hard build error for those projects on .NET 10 SDK. Each test project must also reference `Microsoft.Testing.Extensions.TrxReport` and `Microsoft.Testing.Extensions.CodeCoverage` — `coverlet.collector` doesn't hook into MTP-hosted runs. |
+| Mode               | Test host                                                                                                  | Coverage                                                                                                 | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vstest` (default) | Classic VSTest, via `DotNetCoreCLI@2`'s `command: test`.                                                   | `coverlet.collector` (`coverage.opencover.xml` + `coverage.cobertura.xml`).                              | Works for any test project (MSTest/NUnit/xUnit) that hasn't opted into Microsoft.Testing.Platform (MTP).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `mtp`              | [Microsoft.Testing.Platform][5]-hosted test projects, via the same `DotNetCoreCLI@2` `command: test` task. | [`Microsoft.Testing.Extensions.CodeCoverage`][6] (`coverage.cobertura.xml` only — no OpenCover support). | Required once a repo's test projects enable their framework's MTP runner (e.g. NUnit's `EnableNUnitRunner`) and pull in `Microsoft.Testing.Platform.MSBuild` 2.x: VSTest-mode `dotnet test` becomes a hard build error for those projects on .NET 10 SDK. Each test project must also reference `Microsoft.Testing.Extensions.TrxReport` and `Microsoft.Testing.Extensions.CodeCoverage` — `coverlet.collector` doesn't hook into MTP-hosted runs. **The repo's `global.json` must be discoverable from the pipeline's default working directory (normally the repo root) — see the callout below.** |
 
-`vstest` mode uses `DotNetCoreCLI@2`'s `command: test` as normal. `mtp` mode can't: that
-input unconditionally shells out to `MSBuild --target:VSTest` regardless of `arguments`
-(confirmed via a real CI failure — `MSB1001: Unknown switch` on `--report-trx`), and a
-repo's `global.json` `test.runner` opt-in only takes effect through the real `dotnet test`
-CLI. So `mtp` mode calls `dotnet test --solution ${{ parameters.buildProject }}` directly
-instead — the CLI does its own test-project discovery (via `IsTestProject`, same as the
-SDK itself), so no project/module enumeration is needed at all; `testProjects` is unused
-in this mode. `--max-parallel-test-modules 1` is the one non-obvious flag: `--coverage-output`
-is a fixed filename, and MTP's own results-subfolder naming for that isn't reliably
-collision-free when modules run in parallel sharing one `--results-directory` (a coverage
-report was silently dropped without it during validation) — serializing avoids the
-collision at some cost to wall-clock time.
+Both modes use the exact same task, just different `projects` input and `arguments`.
+`DotNetCoreCLI@2` (2.256.3+) detects Microsoft.Testing.Platform itself, from the repo's
+`global.json` (`test.runner: Microsoft.Testing.Platform`), and when detected automatically
+passes `--project`/`--solution` (picked by file extension) instead of a bare positional
+project path — that's what makes `dotnet test` invoke MTP's own discovery instead of
+falling back to the legacy VSTest-via-MSBuild path (which chokes on MTP-only flags like
+`--report-trx` with `MSB1001: Unknown switch`). Because of this, `mtp` mode passes
+`buildProject` (the solution) as `projects`, not `testProjects` — the CLI does its own
+test-project discovery from there (same `IsTestProject` mechanism the SDK itself uses),
+so `testProjects` is unused in this mode.
+
+> **`global.json` location matters.** The task's MTP detection walks _up_ from the
+> pipeline's working directory looking for `global.json` — it does not look into
+> subdirectories. If `global.json` lives anywhere other than the repo root (e.g. under a
+> `src/` folder alongside the solution), the task will never find it, silently fall back
+> to the VSTest path, and fail with `MSB1001: Unknown switch` on the MTP-only flags below.
+> Keep `global.json` at the repo root.
+
+`--max-parallel-test-modules 1` is the one non-obvious flag in the `mtp` arguments:
+`--coverage-output` is a fixed filename, and MTP's own results-subfolder naming for that
+isn't reliably collision-free when modules run in parallel sharing one
+`--results-directory` (a coverage report was silently dropped without it during
+validation) — serializing avoids the collision at some cost to wall-clock time.
 
 Both modes share the same "Copy Test Files" / `PublishTestResults@2` / `PublishCodeCoverageResults@2`
 steps: trx and coverage files are searched for recursively under `$(Agent.TempDirectory)`
@@ -134,6 +145,12 @@ contributes; the other is a harmless no-op.
 ### 1.1.1 \[v1.yml\]
 
 - `mtp` mode simplified to a single `dotnet test --solution` call.
+
+### 1.1.2 \[v1.yml\]
+
+- `mtp` mode now uses `DotNetCoreCLI@2`'s `command: test` directly (passing `buildProject`
+  as `projects`) instead of a `pwsh` step calling the CLI — the task's own MTP detection
+  (2.256.3+) handles this correctly as long as `global.json` is at the repo root.
 
 [1]: https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/use-dotnet-v2?view=azure-pipelines "UseDotNet@2 Documentation"
 [3]: https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/file-matching-patterns?view=azure-devops "File matching patterns reference"

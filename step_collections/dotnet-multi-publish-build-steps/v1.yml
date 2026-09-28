@@ -134,11 +134,17 @@ steps:
               # README.md#implementation-notes.
               arguments: '--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --collect:"XPlat Code Coverage" --logger trx --results-directory "$(Agent.TempDirectory)"'
       - ${{ else }}:
-          # mtp mode -- see README.md#test-runner-modes.
-          - pwsh: |
-              dotnet test --solution ${{ parameters.buildProject }} --configuration ${{ parameters.buildConfiguration }} --max-parallel-test-modules 1 --no-build --no-restore --report-trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --results-directory "$(Agent.TempDirectory)";
-              exit $LASTEXITCODE;
+          # mtp mode -- see README.md#test-runner-modes. DotNetCoreCLI@2 (2.256.3+) detects
+          # Microsoft.Testing.Platform via global.json itself and adds --solution/--project
+          # accordingly -- requires global.json to be discoverable from the default working
+          # directory (repo root), not nested under a subdirectory.
+          - task: DotNetCoreCLI@2
             displayName: Test (dotnet test)
+            inputs:
+              command: test
+              projects: ${{ parameters.buildProject }}
+              publishTestResults: false
+              arguments: '--no-build --no-restore --configuration ${{ parameters.buildConfiguration }} --max-parallel-test-modules 1 --report-trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --results-directory "$(Agent.TempDirectory)"'
 
       - pwsh: |
           Push-Location $(Agent.TempDirectory);
