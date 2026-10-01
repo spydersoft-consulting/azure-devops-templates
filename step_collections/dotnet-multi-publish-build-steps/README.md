@@ -152,6 +152,13 @@ contributes; the other is a harmless no-op.
   as `projects`) instead of a `pwsh` step calling the CLI — the task's own MTP detection
   (2.256.3+) handles this correctly as long as `global.json` is at the repo root.
 
+### 1.1.3 \[v1.yml\]
+
+- Fixed coverage never reaching Sonar on Linux agents: the "Copy Test Files" fallback matched
+  coverage files with a Windows-only path regex (`\In\<machine>\`), so on `ubuntu-latest`
+  nothing was copied into `ResultFiles/`. It now takes any `coverage.*.xml` outside
+  `ResultFiles/`, regardless of path separator.
+
 [1]: https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/use-dotnet-v2?view=azure-pipelines "UseDotNet@2 Documentation"
 [3]: https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/file-matching-patterns?view=azure-devops "File matching patterns reference"
 [5]: https://learn.microsoft.com/en-us/dotnet/core/testing/microsoft-testing-platform-intro "Microsoft.Testing.Platform overview"
