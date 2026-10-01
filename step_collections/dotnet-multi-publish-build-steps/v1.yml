@@ -176,7 +176,7 @@ steps:
           if (-not $copiedLegacy)
           {
               $files = Get-ChildItem -Path . -Filter 'coverage.*.xml' -File -Recurse -ErrorAction SilentlyContinue |
-                  Where-Object { $_.FullName -match '\\In\\[^\\]+\\coverage\.[^\\]+\.xml$' };
+                  Where-Object { $_.FullName -notmatch '[\\/]ResultFiles[\\/]' };
               foreach ($file in $files)
               {
                   Write-Host "Processing $($file.FullName)";
