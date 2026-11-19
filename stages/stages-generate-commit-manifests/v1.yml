@@ -14,7 +14,7 @@ parameters:
     default: []
   - name: "helmfileVersion"
     type: string
-    default: "0.162.0"
+    default: "1.8.4"
 
   # Stage wiring for callers composing multiple stages of this template in
   # one pipeline (e.g. a combined test -> stage -> production deploy with a
